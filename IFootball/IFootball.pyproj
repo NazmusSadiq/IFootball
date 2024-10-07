@@ -4,13 +4,15 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>307d0287-5b68-4caa-a1ba-b6120240b319</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>IFootball.py</StartupFile>
+    <StartupFile>Main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>IFootball</Name>
     <RootNamespace>IFootball</RootNamespace>
+    <InterpreterId>
+    </InterpreterId>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,7 +23,22 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="IFootball.py" />
+    <Compile Include="Main.py" />
+    <Compile Include="API_Call.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Matches.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Queries.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Stats.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="UILoader.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
