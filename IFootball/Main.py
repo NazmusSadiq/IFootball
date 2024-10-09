@@ -3,14 +3,14 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as qtg
 import PyQt5.QtCore as QtCore
 from UILoader import UILoader  
-import API_Call
+#import API_Call
 
 class MainWindow(qtw.QWidget):
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("IFootball")
-        self.setGeometry(100, 100, 400, 800)
+        self.setGeometry(400, 100, 500, 800)
         self.setLayout(qtw.QVBoxLayout())
 
         self.stack = qtw.QStackedWidget(self)
@@ -52,7 +52,6 @@ class MainWindow(qtw.QWidget):
             self.update_active_tab(self.match_button, 1)
         elif selected_button == self.favorite_button:
             self.update_active_tab(self.favorite_button, 2)
-            UILoader.load_favorite_tab_content(self)
         elif selected_button == self.stats_button:
             self.update_active_tab(self.stats_button, 3)
 

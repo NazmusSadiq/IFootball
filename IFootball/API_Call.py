@@ -29,7 +29,7 @@ API_TOKEN = '8511ddac058c4982b7c64722e71b77ee'
 headers = {'X-Auth-Token': API_TOKEN}
 
 # Get current date and add 2 weeks
-end_date = (datetime.now() + timedelta(weeks=1)).strftime('%Y-%m-%d')
+end_date = (datetime.now() + timedelta(weeks=2)).strftime('%Y-%m-%d')
 
 
 # Helper function to make API calls for a given date range
@@ -104,11 +104,19 @@ for match in matches:
 
         # Insert Competition
         competition = match['competition']
+
+        # Check if the competition name is 'Primera Division' and replace it with 'LaLiga'
+        competition_name = competition['name']
+        if competition_name.lower() == 'primera division':
+            competition_name = 'LaLiga'
+
+        # Insert or update the competition in the database
         cursor.execute("""
             INSERT INTO competitions (competition_id, competition_name, competition_code, competition_type, competition_emblem)
             VALUES (%s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE competition_name=VALUES(competition_name), competition_code=VALUES(competition_code), competition_type=VALUES(competition_type), competition_emblem=VALUES(competition_emblem)
-        """, (competition['id'], competition['name'], competition['code'], competition['type'], competition['emblem']))
+        """, (competition['id'], competition_name, competition['code'], competition['type'], competition['emblem']))
+
 
         # Insert Match
         match_utc_date = datetime.strptime(match['utcDate'], '%Y-%m-%dT%H:%M:%SZ')
