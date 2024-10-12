@@ -1,7 +1,7 @@
 import sys
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as qtg
-import PyQt5.QtCore as QtCore
+import PyQt5.QtCore as qtc
 from UILoader import UILoader  
 #import API_Call
 

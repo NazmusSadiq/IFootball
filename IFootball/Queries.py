@@ -106,7 +106,7 @@ class Queries:
             for row in matches
         ]
     
-    def get_team_stats(team_id):
+    def get_team_stats_in_fav(team_id):
         # Query to get overall team stats by competition
         query = """
         SELECT 
@@ -220,6 +220,66 @@ class Queries:
 
         return result
 
+    def get_competition_standings(competition_id):
+    # Query to get team standings for the given competition
+        query = """
+        SELECT 
+            t.short_name,
+            SUM(CASE 
+                WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 3 
+                WHEN s.full_time_home = s.full_time_away THEN 1 
+                ELSE 0 
+            END) AS points,
+            SUM(CASE 
+                WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 1 
+                ELSE 0 
+            END) AS wins,
+            SUM(CASE WHEN s.full_time_home = s.full_time_away THEN 1 ELSE 0 END) AS draws,
+            SUM(CASE 
+                WHEN (m.home_team_id = t.team_id AND s.full_time_home < s.full_time_away) OR (m.away_team_id = t.team_id AND s.full_time_away < s.full_time_home) THEN 1 
+                ELSE 0 
+            END) AS losses,
+            SUM(CASE 
+                WHEN m.home_team_id = t.team_id THEN s.full_time_home 
+                ELSE s.full_time_away 
+            END) AS goals_scored,
+            SUM(CASE 
+                WHEN m.home_team_id = t.team_id THEN s.full_time_away 
+                ELSE s.full_time_home 
+            END) AS goals_conceded,
+            (SUM(CASE 
+                WHEN m.home_team_id = t.team_id THEN s.full_time_home 
+                ELSE s.full_time_away 
+            END) - SUM(CASE 
+                WHEN m.home_team_id = t.team_id THEN s.full_time_away 
+                ELSE s.full_time_home 
+            END)) AS goal_difference
+        FROM teams t
+        JOIN matches m ON (m.home_team_id = t.team_id OR m.away_team_id = t.team_id)
+        JOIN scores s ON m.match_id = s.match_id
+        WHERE m.competition_id = %s
+        GROUP BY t.short_name
+        ORDER BY points DESC, goal_difference DESC, goals_scored DESC
+        """
+
+        cursor.execute(query, (competition_id,))
+        standings = cursor.fetchall()
+
+        result = []
+        for team in standings:
+            team_stat = {
+                "team_name": team[0],
+                "points": team[1],
+                "wins": team[2],
+                "draws": team[3],
+                "losses": team[4],
+                "goals_scored": team[5],
+                "goals_conceded": team[6],
+                "goal_difference": team[7]
+            }
+            result.append(team_stat)
+
+        return result
 
 
 

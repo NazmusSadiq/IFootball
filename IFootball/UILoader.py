@@ -2,10 +2,11 @@ import json
 import os
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as qtg
-import PyQt5.QtCore as QtCore
+import PyQt5.QtCore as qtc
 from Matches import get_main_matches, get_epl_matches, get_la_liga_matches, get_bundesliga_matches, get_serie_a_matches, get_ligue_1_matches
-from Stats import get_serie_a_stats, get_ucl_stats, get_epl_stats, get_laliga_stats, get_bundesliga_stats, get_serie_a_stats, get_ligue_1_stats
+from Stats import Stats
 from Queries import Queries
+from Favorite import Favorite
 
 FAVORITE_TEAM_FILE = "favorite_team.json"
 
@@ -27,7 +28,7 @@ class UILoader:
         button.icon_path_selected = icon_path_selected
 
         button.setIcon(qtg.QIcon(icon_path_default))
-        button.setIconSize(QtCore.QSize(24, 24))
+        button.setIconSize(qtc.QSize(24, 24))
         button.setStyleSheet("QPushButton { text-align: center; color: grey; }")
 
         button.clicked.connect(lambda: main_window.switch_tab(button))
@@ -60,26 +61,107 @@ class UILoader:
         widget = qtw.QWidget()
         layout = qtw.QVBoxLayout()
 
-        # Display stats data
-        if stats:
-          for stat in stats:
+        if stats:        
+            column_widths = {
+                "Team": 200,"P": 50,"W": 50,"D": 50,"L": 50,"F/A": 100,"Pts": 50
+            }
+    
+            # Create a grid layout for the headings
+            header_layout = qtw.QGridLayout()
+
+            # Add headers with fixed column positions and widths
+            team_header = qtw.QLabel("Team")
+            team_header.setFixedWidth(column_widths["Team"])
+            header_layout.addWidget(team_header, 0, 0, alignment=qtc.Qt.AlignLeft)
+
+            p_header = qtw.QLabel("P")
+            p_header.setFixedWidth(column_widths["P"])
+            header_layout.addWidget(p_header, 0, 1, alignment=qtc.Qt.AlignCenter)
+
+            w_header = qtw.QLabel("W")
+            w_header.setFixedWidth(column_widths["W"])
+            header_layout.addWidget(w_header, 0, 2, alignment=qtc.Qt.AlignCenter)
+
+            d_header = qtw.QLabel("D")
+            d_header.setFixedWidth(column_widths["D"])
+            header_layout.addWidget(d_header, 0, 3, alignment=qtc.Qt.AlignCenter)
+
+            l_header = qtw.QLabel("L")
+            l_header.setFixedWidth(column_widths["L"])
+            header_layout.addWidget(l_header, 0, 4, alignment=qtc.Qt.AlignCenter)
+
+            fa_header = qtw.QLabel("F/A")
+            fa_header.setFixedWidth(column_widths["F/A"])
+            header_layout.addWidget(fa_header, 0, 5, alignment=qtc.Qt.AlignCenter)
+
+            pts_header = qtw.QLabel("Pts")
+            pts_header.setFixedWidth(column_widths["Pts"])
+            header_layout.addWidget(pts_header, 0, 6, alignment=qtc.Qt.AlignCenter)
+
+            # Add header layout to main layout
+            layout.addLayout(header_layout)
+
+            # Add spacing for better visibility
+            layout.addSpacing(10)
+
+            team_rank = 1
+            for stat in stats:
                 if isinstance(stat, dict):
-                    stat_label = qtw.QLabel(f"{stat['team']} - Points: {stat['points']}, Goals: {stat['goals']}, Wins: {stat['wins']}")
-                elif isinstance(stat, str):
-                    stat_label = qtw.QLabel(stat)  # Directly display the string if it's a string
+                    # Create a grid layout for each team's data
+                    team_layout = qtw.QGridLayout()
+
+                    # Add team rank and name with fixed width
+                    team_label = qtw.QLabel(f"{team_rank}. {stat['team_name']}")
+                    team_label.setFixedWidth(column_widths["Team"])
+                    team_layout.addWidget(team_label, 0, 0, alignment=qtc.Qt.AlignLeft)
+
+                    # Add played matches with fixed width
+                    played_label = qtw.QLabel(f"{stat['wins'] + stat['losses'] + stat['draws']}")
+                    played_label.setFixedWidth(column_widths["P"])
+                    team_layout.addWidget(played_label, 0, 1, alignment=qtc.Qt.AlignCenter)
+
+                    # Add wins with fixed width
+                    wins_label = qtw.QLabel(f"{stat['wins']}")
+                    wins_label.setFixedWidth(column_widths["W"])
+                    team_layout.addWidget(wins_label, 0, 2, alignment=qtc.Qt.AlignCenter)
+
+                    # Add draws with fixed width
+                    draws_label = qtw.QLabel(f"{stat['draws']}")
+                    draws_label.setFixedWidth(column_widths["D"])
+                    team_layout.addWidget(draws_label, 0, 3, alignment=qtc.Qt.AlignCenter)
+
+                    # Add losses with fixed width
+                    losses_label = qtw.QLabel(f"{stat['losses']}")
+                    losses_label.setFixedWidth(column_widths["L"])
+                    team_layout.addWidget(losses_label, 0, 4, alignment=qtc.Qt.AlignCenter)
+
+                    # Add goals scored/conceded with fixed width
+                    fa_label = qtw.QLabel(f"{stat['goals_scored']} / {stat['goals_conceded']}")
+                    fa_label.setFixedWidth(column_widths["F/A"])
+                    team_layout.addWidget(fa_label, 0, 5, alignment=qtc.Qt.AlignCenter)
+
+                    # Add points with fixed width
+                    points_label = qtw.QLabel(f"{stat['points']}")
+                    points_label.setFixedWidth(column_widths["Pts"])
+                    team_layout.addWidget(points_label, 0, 6, alignment=qtc.Qt.AlignCenter)
+
+                    # Add the team layout to the main layout
+                    layout.addLayout(team_layout)
+
+                    team_rank += 1
+
                 else:
                     stat_label = qtw.QLabel("Invalid stat format")
-                layout.addWidget(stat_label)
+                    layout.addWidget(stat_label)
         else:
             no_stat_label = qtw.QLabel("No stats available")
             layout.addWidget(no_stat_label)
 
         # Add a spacer to ensure proper spacing
-        layout.addStretch()  # This adds space below the labels
+        layout.addStretch()
 
         widget.setLayout(layout)
         return widget
-
 
     
     # Create Home tab content
@@ -167,12 +249,12 @@ class UILoader:
         sub_stack = qtw.QStackedWidget(main_window)
 
         # Add subtabs with stats data
-        sub_stack.addWidget(UILoader.create_sub_tab_stats(get_ucl_stats()))  # UCL
-        sub_stack.addWidget(UILoader.create_sub_tab_stats(get_epl_stats()))  # EPL
-        sub_stack.addWidget(UILoader.create_sub_tab_stats(get_laliga_stats()))  # La Liga
-        sub_stack.addWidget(UILoader.create_sub_tab_stats(get_bundesliga_stats()))  # Bundesliga
-        sub_stack.addWidget(UILoader.create_sub_tab_stats(get_serie_a_stats()))  # Serie A
-        sub_stack.addWidget(UILoader.create_sub_tab_stats(get_ligue_1_stats()))  # Ligue 1
+        sub_stack.addWidget(UILoader.create_sub_tab_stats(Stats.get_competition_standings(2001)))  # UCL
+        sub_stack.addWidget(UILoader.create_sub_tab_stats(Stats.get_competition_standings(2021)))  # EPL
+        sub_stack.addWidget(UILoader.create_sub_tab_stats(Stats.get_competition_standings(2014)))  # La Liga
+        sub_stack.addWidget(UILoader.create_sub_tab_stats(Stats.get_competition_standings(2002)))  # Bundesliga
+        sub_stack.addWidget(UILoader.create_sub_tab_stats(Stats.get_competition_standings(2019)))  # Serie A
+        sub_stack.addWidget(UILoader.create_sub_tab_stats(Stats.get_competition_standings(2015)))  # Ligue 1
 
         section_layout.addWidget(sub_stack)
         main_layout.addWidget(section_widget)
@@ -215,90 +297,19 @@ class UILoader:
         # Create a stacked widget to hold the different sub-tabs (Fixture, Stats)
         sub_stack = qtw.QStackedWidget(main_window)
 
+        # Load the favorite team information
+        favorite_team, favorite_team_id, last_matches, next_matches = Favorite.load_favorite_tab_content()
+
+        # Create the Fixture and Stats layouts
+        fixture_layout = Favorite.create_fixture_layout(favorite_team, favorite_team_id, last_matches, next_matches)
+        stats_layout = Favorite.create_stats_layout(favorite_team, favorite_team_id)
+
         # Create the Fixture and Stats tabs
         fixture_tab = qtw.QWidget()
-        fixture_layout = qtw.QVBoxLayout(fixture_tab)
+        fixture_tab.setLayout(fixture_layout)
 
         stats_tab = qtw.QWidget()
-        stats_layout = qtw.QVBoxLayout(stats_tab)
-
-        # Load the favorite team content
-        favorite_team, favorite_team_id, last_matches, next_matches = UILoader.load_favorite_tab_content()
-
-        # Add favorite team information to the fixture layout
-        if favorite_team:
-            fixture_layout.addWidget(qtw.QLabel(f"Favorite Team: {favorite_team} (ID: {favorite_team_id})"))
-
-            # Display last 2 matches
-            fixture_layout.addWidget(qtw.QLabel("Previous Matches:"))
-            if last_matches:
-                for match in last_matches:
-                    fixture_layout.addWidget(qtw.QLabel(
-                        f"{match['competition']} R{match['matchday']}: "
-                        f"{match['team1']} {match['score1']} - {match['score2']} {match['team2']} on {match['date']}"
-                    ))
-            else:
-                fixture_layout.addWidget(qtw.QLabel("No recent matches available"))
-
-            # Display next 2 matches
-            fixture_layout.addWidget(qtw.QLabel("Next Matches:"))
-            if next_matches:
-                for match in next_matches:
-                    fixture_layout.addWidget(qtw.QLabel(
-                        f"{match['competition']} R{match['matchday']}: "
-                        f"{match['team1']} vs {match['team2']} on {match['date']}"
-                    ))
-            else:
-                fixture_layout.addWidget(qtw.QLabel("No upcoming matches available"))
-        else:
-            fixture_layout.addWidget(qtw.QLabel("No favorite team set."))
-
-        # Add stretch to the fixture layout
-        fixture_layout.addStretch()
-
-        # Load the favorite team's statistics using the get_team_stats function
-        if favorite_team_id:
-            team_stats = Queries.get_team_stats(favorite_team_id)
-
-            # Add team statistics to the stats layout
-            stats_layout.addWidget(qtw.QLabel(f"Team Stats for {favorite_team}:"))
-
-            if team_stats:
-                for index, stat in enumerate(team_stats):
-                    stats_layout.addWidget(qtw.QLabel(f"Competition: {stat['competition']}"))
-                    stats_layout.addWidget(qtw.QLabel(f"Matches Played: {stat['total_matches']}"))
-                    stats_layout.addWidget(qtw.QLabel(f"Wins: {stat['wins']}"))
-                    stats_layout.addWidget(qtw.QLabel(f"Draws: {stat['draws']}"))
-
-                    stats_layout.addWidget(qtw.QLabel(f"Losses: {stat['losses']}"))
-                    stats_layout.addWidget(qtw.QLabel(f"Goals Scored: {stat['goals_scored']}"))
-                    stats_layout.addWidget(qtw.QLabel(f"Goals Conceded: {stat['goals_conceded']}"))
-                    stats_layout.addWidget(qtw.QLabel(f"Goal Difference: {stat['goal_difference']}"))
-
-                    # Display the biggest win for the competition
-                    if stat['biggest_win']:
-                        stats_layout.addWidget(qtw.QLabel("Biggest Win:"))
-                        biggest_win = stat['biggest_win']
-                        stats_layout.addWidget(qtw.QLabel(
-                            f"{biggest_win['team_goals']} - {biggest_win['opponent_goals']} "
-                            f"against {biggest_win['opponent']} on {biggest_win['date']} R{biggest_win['matchday']}"
-                        ))
-                    else:
-                        stats_layout.addWidget(qtw.QLabel("No biggest wins available."))
-
-
-                    # Add a separator only if it's not the last element
-                    if index < len(team_stats) - 1:
-                        stats_layout.addWidget(qtw.QLabel("-" * 70))  
-            
-            else:
-                stats_layout.addWidget(qtw.QLabel("No stats available for this team."))
-
-        else:
-            stats_layout.addWidget(qtw.QLabel("No favorite team set for stats."))
-
-        # Add stretch to the Stats layout
-        stats_layout.addStretch()
+        stats_tab.setLayout(stats_layout)
 
         # Add the fixture and stats tabs to the stacked widget
         sub_stack.addWidget(fixture_tab)  # Fixture tab
@@ -313,7 +324,7 @@ class UILoader:
         for i, name in enumerate(buttons):
             btn = qtw.QPushButton(name)
             btn.setStyleSheet("QPushButton { text-align: center; }")
-            btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(sub_tab_bar_layout, idx, btn, sub_stack))
+            btn.clicked.connect(lambda _, i=i: sub_stack.setCurrentIndex(i))
             sub_tab_bar_layout.addWidget(btn)
 
         # Insert the sub-tab buttons at the top of the layout
@@ -339,81 +350,10 @@ class UILoader:
 
 
 
-    @staticmethod
-    def load_favorite_tab_content():
-        # Check if favorite team is set
-        favorite_team, favorite_team_id = UILoader.get_favorite_team()
-
-        # If no favorite team is set, prompt user to set it
-        if not favorite_team:
-            UILoader.prompt_set_favorite_team(None)  
-            favorite_team, favorite_team_id = UILoader.get_favorite_team()
-
-        # Initialize last and next match variables
-        last_matches = []
-        next_matches = []
-
-        if favorite_team:
-            last_matches = Queries.get_last_matches(favorite_team_id)
-            next_matches = Queries.get_next_matches(favorite_team_id)
-
-        # Return the necessary data to be displayed
-        return favorite_team, favorite_team_id, last_matches, next_matches
-
-
-    # Functions for favorite team management (unchanged)
-    @staticmethod
-    def get_favorite_team():
-        if os.path.exists(FAVORITE_TEAM_FILE):
-            with open(FAVORITE_TEAM_FILE, 'r') as f:
-                data = json.load(f)
-                short_name = data.get("short_name", None)
-                team_id = data.get("team_id", None)
-                return short_name, team_id  
-        return None, None
-
-    @staticmethod
-    def set_favorite_team(short_name):
-        # Get team ID from the database
-        team_id = Queries.get_team_id_by_name(short_name)
     
-        if team_id:
-            with open(FAVORITE_TEAM_FILE, 'w') as f:
-                json.dump({"short_name": short_name, "team_id": team_id}, f)
-                print(f"Favorite team set: {short_name} (ID: {team_id})")
-        else:
-            print(f"Team {short_name} not found in the database.")
 
-    @staticmethod
-    def prompt_set_favorite_team(main_window):
-        dialog = qtw.QDialog(main_window)  # Set main_window as the parent to center the dialog
-        dialog.setWindowTitle("Set Favorite Team")
+
+   
+
     
-        # Remove the "?" sign by adjusting the window flags
-        dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)
-        dialog.setGeometry(300, 100, 500, 800)
-        dialog.setLayout(qtw.QVBoxLayout())
-
-        label = qtw.QLabel("Please start typing your favorite team:")
-        dialog.layout().addWidget(label)
-
-        # Fetch teams from the database
-        teams = Queries.fetch_teams_from_database()  # Function to retrieve all team names from the DB
-    
-        # Create an input field with auto-completion for team names
-        team_input = qtw.QLineEdit()
-        completer = qtw.QCompleter(teams)  # Create a completer with the team list
-        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)  # Make auto-completion case insensitive
-        team_input.setCompleter(completer)
-        dialog.layout().addWidget(team_input)
-
-        # Ok button
-        ok_button = qtw.QPushButton("OK")
-        ok_button.clicked.connect(lambda: UILoader.set_favorite_team(team_input.text()) or dialog.accept())
-        dialog.layout().addWidget(ok_button)
-
-        dialog.exec_()
-
-
-
        
