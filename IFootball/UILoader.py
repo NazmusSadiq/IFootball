@@ -3,7 +3,7 @@ import os
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as qtg
 import PyQt5.QtCore as qtc
-from Matches import get_main_matches, get_epl_matches, get_la_liga_matches, get_bundesliga_matches, get_serie_a_matches, get_ligue_1_matches
+from Matches import Matches
 from Stats import Stats
 from Queries import Queries
 from Favorite import Favorite
@@ -54,115 +54,6 @@ class UILoader:
 
         widget.setLayout(layout)
         return widget
-
-    # Function to create content for each sub-tab with stats data
-    @staticmethod
-    def create_sub_tab_stats(stats):
-        widget = qtw.QWidget()
-        layout = qtw.QVBoxLayout()
-
-        if stats:        
-            column_widths = {
-                "Team": 200,"P": 50,"W": 50,"D": 50,"L": 50,"F/A": 100,"Pts": 50
-            }
-    
-            # Create a grid layout for the headings
-            header_layout = qtw.QGridLayout()
-
-            # Add headers with fixed column positions and widths
-            team_header = qtw.QLabel("Team")
-            team_header.setFixedWidth(column_widths["Team"])
-            header_layout.addWidget(team_header, 0, 0, alignment=qtc.Qt.AlignLeft)
-
-            p_header = qtw.QLabel("P")
-            p_header.setFixedWidth(column_widths["P"])
-            header_layout.addWidget(p_header, 0, 1, alignment=qtc.Qt.AlignCenter)
-
-            w_header = qtw.QLabel("W")
-            w_header.setFixedWidth(column_widths["W"])
-            header_layout.addWidget(w_header, 0, 2, alignment=qtc.Qt.AlignCenter)
-
-            d_header = qtw.QLabel("D")
-            d_header.setFixedWidth(column_widths["D"])
-            header_layout.addWidget(d_header, 0, 3, alignment=qtc.Qt.AlignCenter)
-
-            l_header = qtw.QLabel("L")
-            l_header.setFixedWidth(column_widths["L"])
-            header_layout.addWidget(l_header, 0, 4, alignment=qtc.Qt.AlignCenter)
-
-            fa_header = qtw.QLabel("F/A")
-            fa_header.setFixedWidth(column_widths["F/A"])
-            header_layout.addWidget(fa_header, 0, 5, alignment=qtc.Qt.AlignCenter)
-
-            pts_header = qtw.QLabel("Pts")
-            pts_header.setFixedWidth(column_widths["Pts"])
-            header_layout.addWidget(pts_header, 0, 6, alignment=qtc.Qt.AlignCenter)
-
-            # Add header layout to main layout
-            layout.addLayout(header_layout)
-
-            # Add spacing for better visibility
-            layout.addSpacing(10)
-
-            team_rank = 1
-            for stat in stats:
-                if isinstance(stat, dict):
-                    # Create a grid layout for each team's data
-                    team_layout = qtw.QGridLayout()
-
-                    # Add team rank and name with fixed width
-                    team_label = qtw.QLabel(f"{team_rank}. {stat['team_name']}")
-                    team_label.setFixedWidth(column_widths["Team"])
-                    team_layout.addWidget(team_label, 0, 0, alignment=qtc.Qt.AlignLeft)
-
-                    # Add played matches with fixed width
-                    played_label = qtw.QLabel(f"{stat['wins'] + stat['losses'] + stat['draws']}")
-                    played_label.setFixedWidth(column_widths["P"])
-                    team_layout.addWidget(played_label, 0, 1, alignment=qtc.Qt.AlignCenter)
-
-                    # Add wins with fixed width
-                    wins_label = qtw.QLabel(f"{stat['wins']}")
-                    wins_label.setFixedWidth(column_widths["W"])
-                    team_layout.addWidget(wins_label, 0, 2, alignment=qtc.Qt.AlignCenter)
-
-                    # Add draws with fixed width
-                    draws_label = qtw.QLabel(f"{stat['draws']}")
-                    draws_label.setFixedWidth(column_widths["D"])
-                    team_layout.addWidget(draws_label, 0, 3, alignment=qtc.Qt.AlignCenter)
-
-                    # Add losses with fixed width
-                    losses_label = qtw.QLabel(f"{stat['losses']}")
-                    losses_label.setFixedWidth(column_widths["L"])
-                    team_layout.addWidget(losses_label, 0, 4, alignment=qtc.Qt.AlignCenter)
-
-                    # Add goals scored/conceded with fixed width
-                    fa_label = qtw.QLabel(f"{stat['goals_scored']} / {stat['goals_conceded']}")
-                    fa_label.setFixedWidth(column_widths["F/A"])
-                    team_layout.addWidget(fa_label, 0, 5, alignment=qtc.Qt.AlignCenter)
-
-                    # Add points with fixed width
-                    points_label = qtw.QLabel(f"{stat['points']}")
-                    points_label.setFixedWidth(column_widths["Pts"])
-                    team_layout.addWidget(points_label, 0, 6, alignment=qtc.Qt.AlignCenter)
-
-                    # Add the team layout to the main layout
-                    layout.addLayout(team_layout)
-
-                    team_rank += 1
-
-                else:
-                    stat_label = qtw.QLabel("Invalid stat format")
-                    layout.addWidget(stat_label)
-        else:
-            no_stat_label = qtw.QLabel("No stats available")
-            layout.addWidget(no_stat_label)
-
-        # Add a spacer to ensure proper spacing
-        layout.addStretch()
-
-        widget.setLayout(layout)
-        return widget
-
     
     # Create Home tab content
     @staticmethod
@@ -190,19 +81,21 @@ class UILoader:
         sub_stack = qtw.QStackedWidget(main_window)
 
         # Add subtabs with match data from matches.py
-        sub_stack.addWidget(UILoader.create_sub_tab_match(get_main_matches()))  # Main
-        sub_stack.addWidget(UILoader.create_sub_tab_match(get_epl_matches()))   # EPL
-        sub_stack.addWidget(UILoader.create_sub_tab_match(get_la_liga_matches()))  # La Liga
-        sub_stack.addWidget(UILoader.create_sub_tab_match(get_bundesliga_matches()))  # Bundesliga
-        sub_stack.addWidget(UILoader.create_sub_tab_match(get_serie_a_matches()))  # Serie A
-        sub_stack.addWidget(UILoader.create_sub_tab_match(get_ligue_1_matches()))  # Ligue 1
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_main_matches()))  # Main
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_subscribed_matches()))  #Subscribed
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_league_matches(2001)))  # UCL
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_league_matches(2021)))  # EPL
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_league_matches(2014)))  # La Liga
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_league_matches(2002)))  # Bundesliga
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_league_matches(2019)))  # Serie A
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_league_matches(2015)))  # Ligue 1
 
         section_layout.addWidget(sub_stack)
         main_layout.addWidget(section_widget)
 
         # Subtab buttons
         sub_tab_bar_layout = qtw.QHBoxLayout()
-        buttons = ["Main", "EPL", "La Liga", "Bundesliga", "Serie A", "Ligue 1"]
+        buttons = ["Main", "Subscribed" ,"UCL", "EPL", "La Liga", "Bundesliga", "Serie A", "Ligue 1"]
         for i, name in enumerate(buttons):
             btn = qtw.QPushButton(name)
             btn.setStyleSheet("QPushButton { text-align: center; }")  
@@ -232,6 +125,7 @@ class UILoader:
         sub_stack.setCurrentIndex(active_index)
 
     # Create Stats tab content with different subtabs
+    # Create Stats tab content with different subtabs
     @staticmethod
     def create_stats_tab(main_window):
         stats_tab = qtw.QWidget()
@@ -245,40 +139,97 @@ class UILoader:
         section_layout = qtw.QVBoxLayout(section_widget)
         section_widget.setObjectName("common_section")
 
-        # Create a stacked widget to hold the different sub-tabs
-        sub_stack = qtw.QStackedWidget(main_window)
+        # Create a stacked widget to hold the different league sub-tabs
+        league_stack = qtw.QStackedWidget(main_window)
 
-        # Add subtabs with stats data
-        sub_stack.addWidget(UILoader.create_sub_tab_stats(Stats.get_competition_standings(2001)))  # UCL
-        sub_stack.addWidget(UILoader.create_sub_tab_stats(Stats.get_competition_standings(2021)))  # EPL
-        sub_stack.addWidget(UILoader.create_sub_tab_stats(Stats.get_competition_standings(2014)))  # La Liga
-        sub_stack.addWidget(UILoader.create_sub_tab_stats(Stats.get_competition_standings(2002)))  # Bundesliga
-        sub_stack.addWidget(UILoader.create_sub_tab_stats(Stats.get_competition_standings(2019)))  # Serie A
-        sub_stack.addWidget(UILoader.create_sub_tab_stats(Stats.get_competition_standings(2015)))  # Ligue 1
+        # Add another sub-stacked widget for standings, stats, and fixtures
+        def create_secondary_stack(competition_id):
+            secondary_stack = qtw.QStackedWidget(main_window)
 
-        section_layout.addWidget(sub_stack)
+            # Create sub-tabs for standings, stats, and fixtures
+            standings_tab = UILoader.create_sub_tab_stats(Queries.get_competition_standings(competition_id),0)
+            teams_tab =UILoader.create_sub_tab_stats(Queries.get_competition_stats(competition_id),1)
+            players_tab = qtw.QWidget() #UILoader.create_sub_tab_stats(Queries.get_competition_stats(competition_id),2) 
+            fixtures_tab = UILoader.create_sub_tab_stats(Queries.get_fixtures(competition_id),3)
+
+            secondary_stack.addWidget(standings_tab)  # Standings
+            secondary_stack.addWidget(teams_tab)      # Teams
+            secondary_stack.addWidget(players_tab)    # Players
+            secondary_stack.addWidget(fixtures_tab)   # Fixtures
+
+            return secondary_stack
+
+        # Add secondary stacks for each league
+        league_stack.addWidget(create_secondary_stack(2001))  # UCL
+        league_stack.addWidget(create_secondary_stack(2021))  # EPL
+        league_stack.addWidget(create_secondary_stack(2014))  # La Liga
+        league_stack.addWidget(create_secondary_stack(2002))  # Bundesliga
+        league_stack.addWidget(create_secondary_stack(2019))  # Serie A
+        league_stack.addWidget(create_secondary_stack(2015))  # Ligue 1
+
+        section_layout.addWidget(league_stack)
         main_layout.addWidget(section_widget)
 
-        # Subtab buttons
-        sub_tab_bar_layout = qtw.QHBoxLayout()
-        buttons = ["UCL", "EPL", "La Liga", "Bundesliga", "Serie A", "Ligue 1"]
-        for i, name in enumerate(buttons):
+        # League subtab buttons
+        league_tab_bar_layout = qtw.QHBoxLayout()
+        leagues = ["UCL", "EPL", "La Liga", "Bundesliga", "Serie A", "Ligue 1"]
+        for i, name in enumerate(leagues):
             btn = qtw.QPushButton(name)
             btn.setStyleSheet("QPushButton { text-align: center; }")
-            btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(sub_tab_bar_layout, idx, btn, sub_stack))
-            sub_tab_bar_layout.addWidget(btn)
+            btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(league_tab_bar_layout, idx, btn, league_stack))
+            league_tab_bar_layout.addWidget(btn)
 
-        # Insert the sub-tab buttons at the top of the layout
-        main_layout.insertLayout(0, sub_tab_bar_layout)
+        # Add league tab buttons at the top
+        main_layout.insertLayout(0, league_tab_bar_layout)
 
-        # Set the default selection for the stats sub-tab (UCL)
-        UILoader.update_sub_tab_buttons(sub_tab_bar_layout, 0, sub_tab_bar_layout.itemAt(0).widget(), sub_stack)
+        # Subtab buttons for standings, stats, and fixtures
+        secondary_tab_bar_layout = qtw.QHBoxLayout()
+        sub_tabs = ["Standings", "Teams", "Players", "Fixtures"]
+        for i, name in enumerate(sub_tabs):
+            btn = qtw.QPushButton(name)
+            btn.setStyleSheet("QPushButton { text-align: center; }")
+            btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(secondary_tab_bar_layout, idx, btn, league_stack.currentWidget()))
+            secondary_tab_bar_layout.addWidget(btn)
+
+        # Insert the secondary sub-tab buttons below the league buttons
+        main_layout.insertLayout(1, secondary_tab_bar_layout)
+
+        # Set default selection for both tabs
+        UILoader.update_sub_tab_buttons(league_tab_bar_layout, 0, league_tab_bar_layout.itemAt(0).widget(), league_stack)
+        UILoader.update_sub_tab_buttons(secondary_tab_bar_layout, 0, secondary_tab_bar_layout.itemAt(0).widget(), league_stack.currentWidget())
 
         stats_tab.setLayout(main_layout)
 
         return stats_tab
 
 
+    # Function to create content for each sub-tab with stats data
+    @staticmethod
+    def create_sub_tab_stats(stats,idx):
+        widget = qtw.QWidget()
+        layout = qtw.QVBoxLayout()
+
+        if stats:
+            # Create headers
+            Stats.create_headers(layout,idx)
+            layout.addSpacing(10)
+            team_rank = 1
+            for stat in stats:
+                if isinstance(stat, dict):
+                    Stats.create_team_row(layout, team_rank, stat,idx)
+                    team_rank += 1
+                else:
+                    stat_label = qtw.QLabel("Invalid stat format")
+                    layout.addWidget(stat_label)
+        else:
+            no_stat_label = qtw.QLabel("No stats available")
+            layout.addWidget(no_stat_label)
+
+        # Add a spacer to ensure proper spacing
+        layout.addStretch()
+
+        widget.setLayout(layout)
+        return widget
     
     @staticmethod
     def create_favorite_tab(main_window):

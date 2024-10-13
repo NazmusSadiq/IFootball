@@ -1,4 +1,5 @@
 import mysql.connector
+from datetime import datetime, timedelta
 
 db = mysql.connector.connect(
     host="localhost",
@@ -21,15 +22,12 @@ class Queries:
         except Exception as e:
             print(f"Error fetching teams from database: {e}")
             return []
-        
-    ## Query to get Team_Id based on Team_Name   
+           
     def get_team_id_by_name(short_name):
         query = "SELECT team_id FROM teams WHERE short_name = %s"
         cursor.execute(query, (short_name,))
         result = cursor.fetchone()
         return result[0] if result else None
-    
-    # queries.py
 
     def get_last_matches(team_id, limit=10):
         query = """
@@ -68,9 +66,6 @@ class Queries:
             }
             for row in matches
         ]
-
-
-
 
     def get_next_matches(team_id, limit=10):
         query = """
@@ -280,6 +275,116 @@ class Queries:
             result.append(team_stat)
 
         return result
+
+    def get_competition_stats(competition_id):
+    # Query to get team stats (goals scored, goals conceded, yellow and red cards)
+        query = """
+        SELECT 
+        t.short_name,
+        SUM(CASE 
+                WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 1 
+                ELSE 0 
+            END) AS wins,
+            SUM(CASE WHEN s.full_time_home = s.full_time_away THEN 1 ELSE 0 END) AS draws,
+            SUM(CASE 
+                WHEN (m.home_team_id = t.team_id AND s.full_time_home < s.full_time_away) OR (m.away_team_id = t.team_id AND s.full_time_away < s.full_time_home) THEN 1 
+                ELSE 0 
+            END) AS losses,
+        SUM(CASE 
+            WHEN m.home_team_id = t.team_id THEN s.full_time_home 
+            ELSE s.full_time_away 
+        END) AS goals_scored,
+        SUM(CASE 
+            WHEN m.home_team_id = t.team_id THEN s.full_time_away 
+            ELSE s.full_time_home 
+        END) AS goals_conceded,
+        0 AS yellow_cards,  
+        0 AS red_cards,
+        0 AS total_shots,
+        0 AS offsides,
+        0 AS fouls
+    FROM teams t
+    JOIN matches m ON (m.home_team_id = t.team_id OR m.away_team_id = t.team_id)
+    JOIN scores s ON m.match_id = s.match_id
+    WHERE m.competition_id = %s
+    GROUP BY t.short_name
+    ORDER BY goals_scored DESC, goals_conceded ASC
+        """
+
+        cursor.execute(query, (competition_id,))
+        stats = cursor.fetchall()
+
+        result = []
+        for team in stats:
+            team_stat = {
+                "team_name": team[0],
+                "matches_played": team[1]+team[2]+team[3],
+                "goals_scored": team[4],
+                "goals_conceded": team[5],
+                "yellow_cards": team[6],  # currently 0
+                "red_cards": team[7],
+                "total_shots": team[8],
+                "offsides": team[9],
+                "fouls": team[10]
+            }
+            result.append(team_stat)
+
+        return result
+
+
+    def get_fixtures(competition_id):
+    # Query to get last and next matches for teams in the specified competition
+        query = """
+        SELECT 
+            m.match_utc_date,
+            m.matchday,
+            t1.short_name AS home_team,
+            t2.short_name AS away_team,
+            s.full_time_home AS home_score,
+            s.full_time_away AS away_score,
+            CASE 
+                WHEN m.match_utc_date < NOW() THEN 'Last Match'
+                ELSE 'Next Match'
+            END AS match_status
+        FROM matches m
+        JOIN teams t1 ON m.home_team_id = t1.team_id
+        JOIN teams t2 ON m.away_team_id = t2.team_id
+        JOIN scores s ON m.match_id = s.match_id
+        WHERE m.competition_id = %s
+        AND (m.match_utc_date = (
+            SELECT MAX(m2.match_utc_date)
+            FROM matches m2
+            WHERE m2.competition_id = %s AND m2.match_utc_date < NOW()
+            AND (m2.home_team_id = m.home_team_id OR m2.away_team_id = m.home_team_id)
+        ) OR m.match_utc_date = (
+            SELECT MIN(m3.match_utc_date)
+            FROM matches m3
+            WHERE m3.competition_id = %s AND m3.match_utc_date > NOW()
+            AND (m3.home_team_id = m.home_team_id OR m3.away_team_id = m.home_team_id)
+        ))
+        ORDER BY m.match_utc_date ASC
+        """
+
+        cursor.execute(query, (competition_id, competition_id, competition_id))
+        fixtures = cursor.fetchall()
+
+        result = []
+        for fixture in fixtures:
+            fixture_data = {
+                "match_date": fixture[0],
+                "matchday": fixture[1],
+                "home_team": fixture[2],
+                "away_team": fixture[3],
+                "home_score": fixture[4],
+                "away_score": fixture[5],
+                "match_status": fixture[6]  # Last or Next match
+            }
+            result.append(fixture_data)
+
+        return result
+
+
+
 
 
 

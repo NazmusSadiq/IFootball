@@ -21,19 +21,20 @@ if match_count > 0:
     result = cursor.fetchone()
     earliest_date = result[0]
     start_date = earliest_date.strftime('%Y-%m-%d')  # use last date for which database is updated
+    end_date = (datetime.now() + timedelta(1)).strftime('%Y-%m-%d')
+    
 else:
-    start_date = '2024-08-01'  # Use season start date
+    start_date = '2024-08-01'  
+    end_date = '2025-07-01'
     
 # API call to get data
 API_TOKEN = '8511ddac058c4982b7c64722e71b77ee'
 headers = {'X-Auth-Token': API_TOKEN}
 
-# Get current date and add 2 weeks
-end_date = (datetime.now() + timedelta(weeks=2)).strftime('%Y-%m-%d')
-
 
 # Helper function to make API calls for a given date range
 def fetch_matches_for_date_range(start, end):
+    print(f"Fetching matches from {start} to {end}")
     uri = f'https://api.football-data.org/v4/matches?dateFrom={start}&dateTo={end}'
     response = requests.get(uri, headers=headers)
     
@@ -43,16 +44,17 @@ def fetch_matches_for_date_range(start, end):
         print(f"Failed to fetch data from {start} to {end}. Status code: {response.status_code}")
         return []
 
-# Break the date range into 10-day intervals and fetch data
+# Break the date range into 7-day intervals and fetch data
 def fetch_matches_in_intervals(start_date, end_date):
-    current_start = datetime.strptime(start_date, '%Y-%m-%d')
-    final_end = datetime.strptime(end_date, '%Y-%m-%d')
+    current_start = datetime.strptime(start_date, '%Y-%m-%d') - timedelta(days=1)
+    final_end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
     all_matches = []
 
     while current_start <= final_end:
-        current_end = current_start + timedelta(days=9)
+        current_end = current_start + timedelta(days=7)
         if current_end > final_end:
             current_end = final_end
+        print(f"Fetching from {current_start.strftime('%Y-%m-%d')} to {current_end.strftime('%Y-%m-%d')}")
 
         matches = fetch_matches_for_date_range(current_start.strftime('%Y-%m-%d'), current_end.strftime('%Y-%m-%d'))
         all_matches.extend(matches)
@@ -69,7 +71,7 @@ for match in matches:
     competition_id = match['competition']['id']
     
     # Check if competition_id is one of the specified values
-    if competition_id in [2001, 2002, 2015, 2019, 2021, 2014]:        #top 5 leagues and UCL
+    if competition_id >0:        #top 5 leagues and UCL
         # Insert Area
         area = match['area']
         cursor.execute("""
