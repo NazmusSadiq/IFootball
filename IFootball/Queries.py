@@ -1,5 +1,5 @@
 import mysql.connector
-
+from datetime import datetime, timedelta
 db = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -523,3 +523,114 @@ class Queries:
 
 
 
+    def get_player_stats(competition_id):
+        # Initialize result dictionary to hold player stats
+        result = {
+            "top_scorers": [],
+            "top_assist_providers": [],
+            "top_yellow_card_recipients": [],
+            "top_red_card_recipients": [],
+            "top_clean_sheet_providers": []
+        }
+
+        # Query for top scorers
+        query_top_scorers = """
+        SELECT 
+            ps.player_name,
+            SUM(ps.goals) AS total_goals
+        FROM player_stats ps
+        WHERE ps.competition_id = %s
+        GROUP BY ps.player_name
+        ORDER BY total_goals DESC
+        LIMIT 5;
+        """
+        cursor.execute(query_top_scorers, (competition_id,))
+        top_scorers = cursor.fetchall()
+
+        for player in top_scorers:
+            result["top_scorers"].append({
+                "player_name": player[0],
+                "total_goals": player[1]
+            })
+
+        # Query for top assist providers
+        query_top_assists = """
+        SELECT 
+            ps.player_name,
+            SUM(ps.assists) AS total_assists
+        FROM player_stats ps
+        WHERE ps.competition_id = %s
+        GROUP BY ps.player_name
+        ORDER BY total_assists DESC
+        LIMIT 5;
+        """
+        cursor.execute(query_top_assists, (competition_id,))
+        top_assist_providers = cursor.fetchall()
+
+        for player in top_assist_providers:
+            result["top_assist_providers"].append({
+                "player_name": player[0],
+                "total_assists": player[1]
+            })
+
+        # Query for top yellow card recipients
+        query_top_yellow_cards = """
+        SELECT 
+            ps.player_name,
+            SUM(ps.yellow_cards) AS total_yellow_cards
+        FROM player_stats ps
+        WHERE ps.competition_id = %s
+        GROUP BY ps.player_name
+        ORDER BY total_yellow_cards DESC
+        LIMIT 5;
+        """
+        cursor.execute(query_top_yellow_cards, (competition_id,))
+        top_yellow_card_recipients = cursor.fetchall()
+
+        for player in top_yellow_card_recipients:
+            result["top_yellow_card_recipients"].append({
+                "player_name": player[0],
+                "total_yellow_cards": player[1]
+            })
+
+        # Query for top red card recipients
+        query_top_red_cards = """
+        SELECT 
+            ps.player_name,
+            SUM(ps.red_cards) AS total_red_cards
+        FROM player_stats ps
+        WHERE ps.competition_id = %s
+        GROUP BY ps.player_name
+        ORDER BY total_red_cards DESC
+        LIMIT 5;
+        """
+        cursor.execute(query_top_red_cards, (competition_id,))
+        top_red_card_recipients = cursor.fetchall()
+
+        for player in top_red_card_recipients:
+            result["top_red_card_recipients"].append({
+                "player_name": player[0],
+                "total_red_cards": player[1]
+            })
+
+        # Query for top clean sheet providers
+        query_top_clean_sheets = """
+        SELECT 
+            ps.player_name,
+            SUM(ps.clean_sheets) AS total_clean_sheets
+        FROM player_stats ps
+        WHERE ps.competition_id = %s
+        GROUP BY ps.player_name
+        ORDER BY total_clean_sheets DESC
+        LIMIT 5;
+        """
+        cursor.execute(query_top_clean_sheets, (competition_id,))
+        top_clean_sheet_providers = cursor.fetchall()
+
+        for player in top_clean_sheet_providers:
+            result["top_clean_sheet_providers"].append({
+                "player_name": player[0],
+                "total_clean_sheets": player[1]
+            })
+
+        return result
