@@ -6,7 +6,7 @@ fav_team_id=0
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="210041139",
+    password="4444",
     database="IFootball"
 )
 cursor = db.cursor()
@@ -44,7 +44,9 @@ class Queries:
             s.full_time_away, 
             m.match_utc_date, 
             c.competition_name,  
-            m.matchday            
+            m.matchday,
+            m.home_team_id,
+            m.away_team_id            
         FROM matches m
         JOIN teams t1 ON m.home_team_id = t1.team_id
         JOIN teams t2 ON m.away_team_id = t2.team_id
@@ -67,7 +69,9 @@ class Queries:
                 "score2": row[4] if row[4] is not None else "N/A",  
                 "date": row[5].strftime('%Y-%m-%d'),  
                 "competition": row[6],  
-                "matchday": row[7]  
+                "matchday": row[7],
+                "home_team_id": row[8],
+                "away_team_id": row[9]
             }
             for row in matches
         ]
@@ -195,7 +199,9 @@ class Queries:
             at.short_name AS away_team, 
             m.match_utc_date, 
             c.competition_name,   
-            m.matchday           
+            m.matchday,
+            m.home_team_id,
+            m.away_team_id          
         FROM matches m
         JOIN teams ht ON m.home_team_id = ht.team_id
         JOIN teams at ON m.away_team_id = at.team_id
@@ -216,7 +222,9 @@ class Queries:
                 "team2": row[2],  # away team
                 "date": row[3].strftime('%Y-%m-%d'),  # match date in 'YYYY-MM-DD' format
                 "competition": row[4],  # Competition name
-                "matchday": row[5]  # Matchday
+                "matchday": row[5],  # Matchday
+                "home_team_id": row[6],
+                "away_team_id": row[7]
             }
             for row in matches
         ]
@@ -476,6 +484,8 @@ class Queries:
             s.full_time_home AS home_score,
             s.full_time_away AS away_score,
             m.competition_id,
+            m.home_team_id,
+            m.away_team_id,
             m.match_id,
             CASE 
                 WHEN m.match_utc_date < NOW() THEN 'Last Match'
@@ -524,7 +534,9 @@ class Queries:
                     "away_team": fixture[3],
                     "home_score": fixture[4],
                     "away_score": fixture[5],
-                    "match_id": fixture[6]
+                    "home_team_id": fixture[7],
+                    "away_team_id": fixture[8],
+                    "match_id": fixture[9]
                 }
             else:
                 fixture_data = {
@@ -534,7 +546,9 @@ class Queries:
                     "away_team": fixture[3],
                     "home_score": fixture[4],
                     "away_score": fixture[5],
-                    "match_id": fixture[6]
+                    "home_team_id": fixture[7],
+                    "away_team_id": fixture[8],
+                    "match_id": fixture[9]
                 }
                 
             # If no competition_id is provided, add the default competition IDs to the result
@@ -620,7 +634,9 @@ class Queries:
             s.full_time_home AS home_score,
             s.full_time_away AS away_score,
             m.competition_id,
-            m.match_id
+            m.match_id,
+            m.home_team_id,
+            m.away_team_id
         FROM matches m
         JOIN teams t1 ON m.home_team_id = t1.team_id
         JOIN teams t2 ON m.away_team_id = t2.team_id
@@ -659,7 +675,9 @@ class Queries:
                 "home_score": row[4],
                 "away_score": row[5],
                 "competition_id": row[6], 
-                "match_id": row[7]
+                "match_id": row[7],
+                "home_team_id": row[8],
+                "away_team_id": row[9]
             }
             result.append(fixture_data)
 
