@@ -1,5 +1,4 @@
 import mysql.connector
-from datetime import datetime, timedelta
 
 db = mysql.connector.connect(
     host="localhost",
@@ -22,12 +21,15 @@ class Queries:
         except Exception as e:
             print(f"Error fetching teams from database: {e}")
             return []
-           
+        
+    ## Query to get Team_Id based on Team_Name   
     def get_team_id_by_name(short_name):
         query = "SELECT team_id FROM teams WHERE short_name = %s"
         cursor.execute(query, (short_name,))
         result = cursor.fetchone()
         return result[0] if result else None
+    
+    # queries.py
 
     def get_last_matches(team_id, limit=10):
         query = """
@@ -67,6 +69,9 @@ class Queries:
             for row in matches
         ]
 
+
+
+
     def get_next_matches(team_id, limit=10):
         query = """
         SELECT 
@@ -101,7 +106,7 @@ class Queries:
             for row in matches
         ]
     
-    def get_team_stats_in_fav(team_id):
+    def get_team_stats(team_id):
         # Query to get overall team stats by competition
         query = """
         SELECT 
@@ -301,7 +306,6 @@ class Queries:
         0 AS yellow_cards,  
         0 AS red_cards,
         0 AS total_shots,
-        0 AS on_target,
         0 AS offsides,
         0 AS fouls
     FROM teams t
@@ -309,7 +313,7 @@ class Queries:
     JOIN scores s ON m.match_id = s.match_id
     WHERE m.competition_id = %s
     GROUP BY t.short_name
-    ORDER BY t.short_name ASC
+    ORDER BY goals_scored DESC, goals_conceded ASC
         """
 
         cursor.execute(query, (competition_id,))
@@ -325,13 +329,13 @@ class Queries:
                 "yellow_cards": team[6],  # currently 0
                 "red_cards": team[7],
                 "total_shots": team[8],
-                "on_target": team[9],
-                "offsides": team[10],
-                "fouls": team[11]
+                "offsides": team[9],
+                "fouls": team[10]
             }
             result.append(team_stat)
 
         return result
+
 
     def get_fixtures(competition_id):
     # Query to get last and next matches for teams in the specified competition
@@ -384,118 +388,137 @@ class Queries:
 
         return result
 
-    def get_player_stats(competition_id):
-        # Initialize result dictionary to hold player stats
-        result = {
-            "top_scorers": [],
-            "top_assist_providers": [],
-            "top_yellow_card_recipients": [],
-            "top_red_card_recipients": [],
-            "top_clean_sheet_providers": []
-        }
-
-        # Query for top scorers
-        query_top_scorers = """
-        SELECT 
-            ps.player_name,
-            SUM(ps.goals) AS total_goals
-        FROM player_stats ps
-        WHERE ps.competition_id = %s
-        GROUP BY ps.player_name
-        ORDER BY total_goals DESC
-        LIMIT 5;
+    def get_league_matches(league_id):
         """
-        cursor.execute(query_top_scorers, (competition_id,))
-        top_scorers = cursor.fetchall()
-
-        for player in top_scorers:
-            result["top_scorers"].append({
-                "player_name": player[0],
-                "total_goals": player[1]
-            })
-
-        # Query for top assist providers
-        query_top_assists = """
-        SELECT 
-            ps.player_name,
-            SUM(ps.assists) AS total_assists
-        FROM player_stats ps
-        WHERE ps.competition_id = %s
-        GROUP BY ps.player_name
-        ORDER BY total_assists DESC
-        LIMIT 5;
+        Fetch all matches for a given league without a limit.
         """
-        cursor.execute(query_top_assists, (competition_id,))
-        top_assist_providers = cursor.fetchall()
+        today = datetime.utcnow().date()
+        past_date = today - timedelta(days=15)
+        future_date = today + timedelta(days=17)
 
-        for player in top_assist_providers:
-            result["top_assist_providers"].append({
-                "player_name": player[0],
-                "total_assists": player[1]
-            })
-
-        # Query for top yellow card recipients
-        query_top_yellow_cards = """
+        query = """
         SELECT 
-            ps.player_name,
-            SUM(ps.yellow_cards) AS total_yellow_cards
-        FROM player_stats ps
-        WHERE ps.competition_id = %s
-        GROUP BY ps.player_name
-        ORDER BY total_yellow_cards DESC
-        LIMIT 5;
-        """
-        cursor.execute(query_top_yellow_cards, (competition_id,))
-        top_yellow_card_recipients = cursor.fetchall()
-
-        for player in top_yellow_card_recipients:
-            result["top_yellow_card_recipients"].append({
-                "player_name": player[0],
-                "total_yellow_cards": player[1]
-            })
-
-        # Query for top red card recipients
-        query_top_red_cards = """
-        SELECT 
-            ps.player_name,
-            SUM(ps.red_cards) AS total_red_cards
-        FROM player_stats ps
-        WHERE ps.competition_id = %s
-        GROUP BY ps.player_name
-        ORDER BY total_red_cards DESC
-        LIMIT 5;
-        """
-        cursor.execute(query_top_red_cards, (competition_id,))
-        top_red_card_recipients = cursor.fetchall()
-
-        for player in top_red_card_recipients:
-            result["top_red_card_recipients"].append({
-                "player_name": player[0],
-                "total_red_cards": player[1]
-            })
-
-        # Query for top clean sheet providers
-        query_top_clean_sheets = """
-        SELECT 
-            ps.player_name,
-            SUM(ps.clean_sheets) AS total_clean_sheets
-        FROM player_stats ps
-        WHERE ps.competition_id = %s
-        GROUP BY ps.player_name
-        ORDER BY total_clean_sheets DESC
-        LIMIT 5;
-        """
-        cursor.execute(query_top_clean_sheets, (competition_id,))
-        top_clean_sheet_providers = cursor.fetchall()
-
-        for player in top_clean_sheet_providers:
-            result["top_clean_sheet_providers"].append({
-                "player_name": player[0],
-                "total_clean_sheets": player[1]
-            })
-
+            m.match_id,
+            t1.short_name AS home_team,
+            t2.short_name AS away_team,
+            s.full_time_home,
+            s.full_time_away,
+            m.match_utc_date,
+            c.competition_name,
+            m.matchday
+        FROM matches m
+        JOIN teams t1 ON m.home_team_id = t1.team_id
+        JOIN teams t2 ON m.away_team_id = t2.team_id
+        LEFT JOIN scores s ON m.match_id = s.match_id
+        JOIN competitions c ON m.competition_id = c.competition_id
+        WHERE m.competition_id = %s
+          AND m.match_utc_date BETWEEN %s AND %s
+        ORDER BY m.match_utc_date ASC
+    """
+    # Execute the query with the parameters
+        cursor.execute(query, (league_id, past_date, future_date))
+        matches = cursor.fetchall()  
+        result = []
+        for match in matches:
+            fixture_data = {
+                "match_id": match[0],
+                "home_team": match[1],
+                "away_team": match[2],
+                "home_score": match[3] if match[3] is not None else "N/A",
+                "away_score": match[4] if match[4] is not None else "N/A",
+                "date": match[5].strftime('%Y-%m-%d'),
+                "competition": match[6],
+                "matchday": match[7]
+            
+            }
+            result.append(fixture_data)
         return result
 
+    def get_main_matches():
+        """
+        Fetch all main matches without a limit.
+        """
+        today = datetime.utcnow().date()
+        past_date = today - timedelta(days=13)
+        future_date = today + timedelta(days=15)
+
+        query = """
+        SELECT 
+            m.match_id,
+            t1.short_name AS home_team,
+            t2.short_name AS away_team,
+            s.full_time_home,
+            s.full_time_away,
+            m.match_utc_date,
+            c.competition_name,
+            m.matchday
+        FROM matches m
+        JOIN teams t1 ON m.home_team_id = t1.team_id
+        JOIN teams t2 ON m.away_team_id = t2.team_id
+        LEFT JOIN scores s ON m.match_id = s.match_id
+        JOIN competitions c ON m.competition_id = c.competition_id
+          AND m.match_utc_date BETWEEN %s AND %s
+        ORDER BY m.competition_name
+        ORDER BY m.match_utc_date ASC
+    """
+    # Execute the query with the parameters
+        cursor.execute(query, ( past_date, future_date))
+        matches = cursor.fetchall()
+        result = []
+        for match in matches:
+            fixture_data = {
+                "match_id": match[0],
+                "home_team": match[1],
+                "away_team": match[2],
+                "home_score": match[3] if match[3] is not None else "N/A",
+                "away_score": match[4] if match[4] is not None else "N/A",
+                "date": match[5].strftime('%Y-%m-%d'),
+                "competition": match[6],
+                "matchday": match[7]
+            
+            }
+            result.append(fixture_data)
+        return result
+
+    # def get_subscribed_matches(user_id):
+    #     """
+    #     Fetch all matches that a user is subscribed to without a limit.
+    #     """
+    #     query = """
+    #     SELECT 
+    #         m.match_id,
+    #         t1.short_name AS home_team,
+    #         t2.short_name AS away_team,
+    #         s.full_time_home,
+    #         s.full_time_away,
+    #         m.match_utc_date,
+    #         c.competition_name,
+    #         m.matchday
+    #     FROM matches m
+    #     JOIN teams t1 ON m.home_team_id = t1.team_id
+    #     JOIN teams t2 ON m.away_team_id = t2.team_id
+    #     LEFT JOIN scores s ON m.match_id = s.match_id
+    #     JOIN competitions c ON m.competition_id = c.competition_id
+    #     JOIN user_subscriptions us ON us.match_id = m.match_id
+    #     WHERE us.user_id = %s
+    #     ORDER BY m.match_utc_date ASC
+    #     """
+    #     cursor.execute(query, (user_id,))
+    #     matches = cursor.fetchall()
+
+    #     return [
+    #         {
+    #             "match_id": row[0],
+    #             "home_team": row[1],
+    #             "away_team": row[2],
+    #             "home_score": row[3] if row[3] is not None else "N/A",
+    #             "away_score": row[4] if row[4] is not None else "N/A",
+    #             "date": row[5].strftime('%Y-%m-%d'),
+    #             "competition": row[6],
+    #             "matchday": row[7]
+    #         }
+    #         for row in matches
+    #     ]
 
 
 

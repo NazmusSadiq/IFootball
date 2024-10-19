@@ -7,6 +7,7 @@ from Matches import Matches
 from Stats import Stats
 from Queries import Queries
 from Favorite import Favorite
+from datetime import datetime
 
 FAVORITE_TEAM_FILE = "favorite_team.json"
 
@@ -40,21 +41,103 @@ class UILoader:
         widget = qtw.QWidget()
         layout = qtw.QVBoxLayout()
 
-        # Display match data
-        if matches:
-            for match in matches:
-                match_label = qtw.QLabel(f"{match['team1']} vs {match['team2']} - {match['date']}")
+        # Helper to convert string dates to datetime.date objects
+        def parse_date(date_str):
+            return datetime.strptime(date_str, '%Y-%m-%d').date()
+
+        # Get today's date for comparison
+        today = datetime.utcnow().date()
+
+        # Separate matches into previous and next
+        previous_matches = [match for match in matches if parse_date(match['date']) < today]
+        next_matches = [match for match in matches if parse_date(match['date']) >= today]
+        layout.addWidget(qtw.QLabel(f"{matches[1]['competition']}"))
+        # Display previous matches
+        if previous_matches:
+            layout.addWidget(qtw.QLabel("<b>Previous Matches</b>"))
+            
+            for match in previous_matches:
+                
+                # print(match)
+                match_label = qtw.QLabel(f"{match['home_team']} vs {match['away_team']} | {match['home_score']} - {match['away_score']} | {match['date']}")
                 layout.addWidget(match_label)
         else:
-            no_match_label = qtw.QLabel("No matches available")
-            layout.addWidget(no_match_label)
+            layout.addWidget(qtw.QLabel("No previous matches available"))
 
-        # Add a spacer to ensure proper spacing
-        layout.addStretch()  # This adds space below the labels
+        # Add spacing between sections
+        layout.addSpacing(20)
+
+        # Display next matches
+        if next_matches:
+            layout.addWidget(qtw.QLabel("<b>Next Matches</b>"))
+            for match in next_matches:
+                match_label = qtw.QLabel(f"{match['home_team']} vs {match['away_team']} | {match['date']}")
+                layout.addWidget(match_label)
+        else:
+            layout.addWidget(qtw.QLabel("No upcoming matches available"))
+
+        # Add a spacer to ensure proper spacing at the bottom
+        layout.addStretch()
 
         widget.setLayout(layout)
         return widget
+
+    @staticmethod
+    def create_main_match_tab():
+        match_tab = qtw.QWidget()
+        main_layout = qtw.QVBoxLayout()
     
+        UILoader.clear_section(main_layout)  # Clear previous content if any
+    
+        # Create a scrollable area to contain all competitions
+        scroll_area = qtw.QScrollArea()
+        scroll_area.setWidgetResizable(True)
+    
+        # Widget to hold all competitions in a vertical layout
+        competitions_widget = qtw.QWidget()
+        competitions_layout = qtw.QVBoxLayout(competitions_widget)
+    
+        # Define competition IDs and their names
+        competitions = {
+            2014: "La Liga",
+            2001: "UCL",
+            2021: "EPL",
+            2002: "Bundesliga",
+            2019: "Serie A",
+            2015: "Ligue 1"
+        }
+    
+        # Loop through competitions and add them to the layout
+        for comp_id, comp_name in competitions.items():
+            # Section header for the competition
+            header = qtw.QLabel(f"<b>{comp_name}</b>")
+            header.setAlignment(qtc.Qt.AlignCenter)
+            header.setStyleSheet("font-size: 18px; margin: 10px 0;")
+    
+            competitions_layout.addWidget(header)
+    
+            # Fetch and display matches for the competition
+            matches = Queries.get_league_matches(comp_id)
+            competitions_layout.addWidget(UILoader.create_sub_tab_match(matches))
+    
+            # Add spacing between competitions
+            competitions_layout.addSpacing(20)
+    
+        # Add a spacer to ensure proper alignment
+        competitions_layout.addStretch()
+    
+        # Set competitions widget inside the scroll area
+        scroll_area.setWidget(competitions_widget)
+    
+        # Add scroll area to the main layout
+        main_layout.addWidget(scroll_area)
+    
+        match_tab.setLayout(main_layout)
+    
+        return match_tab
+    
+
+
     # Create Home tab content
     @staticmethod
     def create_home_tab():
@@ -81,24 +164,30 @@ class UILoader:
         sub_stack = qtw.QStackedWidget(main_window)
 
         # Add subtabs with match data from matches.py
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_main_matches()))  # Main
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_subscribed_matches()))  #Subscribed
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_league_matches(2001)))  # UCL
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_league_matches(2021)))  # EPL
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_league_matches(2014)))  # La Liga
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_league_matches(2002)))  # Bundesliga
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_league_matches(2019)))  # Serie A
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Matches.get_league_matches(2015)))  # Ligue 1
+        sub_stack.addWidget(UILoader.create_main_match_tab())  # Main
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_league_matches(2014)))  # Subscribed
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_league_matches(2001)))  # UCL
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_league_matches(2021)))  # EPL
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_league_matches(2014)))  # La Liga
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_league_matches(2002)))  # Bundesliga
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_league_matches(2019)))  # Serie A
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_league_matches(2015)))  # Ligue 1
 
         section_layout.addWidget(sub_stack)
-        main_layout.addWidget(section_widget)
+
+        # Create a scroll area to wrap the section widget
+        scroll_area = qtw.QScrollArea()
+        scroll_area.setWidgetResizable(True)  # Ensure resizing works dynamically
+        scroll_area.setWidget(section_widget)
+
+        main_layout.addWidget(scroll_area)  # Add the scroll area to the main layout
 
         # Subtab buttons
         sub_tab_bar_layout = qtw.QHBoxLayout()
-        buttons = ["Main", "Subscribed" ,"UCL", "EPL", "La Liga", "Bundesliga", "Serie A", "Ligue 1"]
+        buttons = ["Main", "Subscribed", "UCL", "EPL", "La Liga", "Bundesliga", "Serie A", "Ligue 1"]
         for i, name in enumerate(buttons):
             btn = qtw.QPushButton(name)
-            btn.setStyleSheet("QPushButton { text-align: center; }")  
+            btn.setStyleSheet("QPushButton { text-align: center; }")
             btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(sub_tab_bar_layout, idx, btn, sub_stack))
             sub_tab_bar_layout.addWidget(btn)
 
@@ -111,6 +200,9 @@ class UILoader:
         match_tab.setLayout(main_layout)
 
         return match_tab
+    
+   
+
 
 
 
