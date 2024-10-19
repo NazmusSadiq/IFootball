@@ -44,6 +44,8 @@ class Matches:
         home_score = match['home_score']
         away_score = match['away_score']
         
+        current_match_id = match['match_id']
+        
         # Displaying score or 'vs' if scores are invalid
         if home_score is None or away_score is None or home_score < 0 or away_score < 0:
             score_display = "  vs"

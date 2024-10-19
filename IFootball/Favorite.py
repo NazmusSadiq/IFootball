@@ -16,6 +16,8 @@ class Favorite:
                 data = json.load(f)
                 short_name = data.get("short_name", None)
                 team_id = data.get("team_id", None)
+                print(f"Favorite team found:  (ID: {team_id})")
+                Queries.set_fav_team_as_subscribed(team_id)
                 return short_name, team_id  
         return None, None
 
@@ -28,6 +30,7 @@ class Favorite:
             with open(FAVORITE_TEAM_FILE, 'w') as f:
                 json.dump({"short_name": short_name, "team_id": team_id}, f)
                 print(f"Favorite team set: {short_name} (ID: {team_id})")
+                Queries.set_fav_team_as_subscribed(team_id)
         else:
             print(f"Team {short_name} not found in the database.")
 
@@ -163,3 +166,5 @@ class Favorite:
 
         stats_layout.addStretch()
         return stats_layout
+    
+        

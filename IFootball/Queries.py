@@ -1,5 +1,8 @@
 import mysql.connector
 from datetime import datetime, timedelta
+
+fav_team_id=0
+
 db = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -465,7 +468,7 @@ class Queries:
     
         # Query to get fixtures from the past 'last' weeks, current week, and next 'next' weeks
         query = f"""
-        SELECT 
+        SELECT
             m.match_utc_date,
             m.matchday,
             t1.short_name AS home_team,
@@ -473,6 +476,7 @@ class Queries:
             s.full_time_home AS home_score,
             s.full_time_away AS away_score,
             m.competition_id,
+            m.match_id,
             CASE 
                 WHEN m.match_utc_date < NOW() THEN 'Last Match'
                 ELSE 'Next Match'
@@ -519,7 +523,8 @@ class Queries:
                     "home_team": fixture[2],
                     "away_team": fixture[3],
                     "home_score": fixture[4],
-                    "away_score": fixture[5]
+                    "away_score": fixture[5],
+                    "match_id": fixture[6]
                 }
             else:
                 fixture_data = {
@@ -529,6 +534,7 @@ class Queries:
                     "away_team": fixture[3],
                     "home_score": fixture[4],
                     "away_score": fixture[5],
+                    "match_id": fixture[6]
                 }
                 
             # If no competition_id is provided, add the default competition IDs to the result
@@ -539,8 +545,25 @@ class Queries:
 
         return result
 
-
-
+    def set_fav_team_as_subscribed(favorite_team_id):
+        fav_team_id = favorite_team_id
+        query = """
+            UPDATE matches
+            SET subscribed = 'Yes'
+            WHERE home_team_id = %s OR away_team_id = %s
+        """
+        cursor.execute(query, (favorite_team_id, favorite_team_id))
+        db.commit()
+        
+    def set_match_as_subscribed(match_id):
+        query = """
+            UPDATE matches
+            SET subscribed = 'Yes'
+            WHERE match_id =%s
+        """
+        cursor.execute(query, (match_id))
+        db.commit()
+        
     def get_league_matches(league_id):
         """
         Fetch all matches for a given league without a limit.
@@ -587,93 +610,60 @@ class Queries:
             result.append(fixture_data)
         return result
 
-    def get_main_matches():
-        """
-        Fetch all main matches without a limit.
-        """
-        today = datetime.utcnow().date()
-        past_date = today - timedelta(days=13)
-        future_date = today + timedelta(days=15)
-
+    def get_subscribed_matches(last=2, next=2):
         query = """
         SELECT 
-            m.match_id,
+            m.match_utc_date,
+            m.matchday,
             t1.short_name AS home_team,
             t2.short_name AS away_team,
-            s.full_time_home,
-            s.full_time_away,
-            m.match_utc_date,
-            c.competition_name,
-            m.matchday
+            s.full_time_home AS home_score,
+            s.full_time_away AS away_score,
+            m.competition_id,
+            m.match_id
         FROM matches m
         JOIN teams t1 ON m.home_team_id = t1.team_id
         JOIN teams t2 ON m.away_team_id = t2.team_id
         LEFT JOIN scores s ON m.match_id = s.match_id
-        JOIN competitions c ON m.competition_id = c.competition_id
-          AND m.match_utc_date BETWEEN %s AND %s
-        ORDER BY m.competition_name
+        WHERE m.subscribed = 'Yes' 
+        AND m.match_utc_date BETWEEN DATE_SUB(CURDATE(), INTERVAL %s WEEK)  -- From 'last' weeks ago
+                                AND DATE_ADD(CURDATE(), INTERVAL %s WEEK)  -- To 'next' weeks in future
         ORDER BY m.match_utc_date ASC
-    """
-    # Execute the query with the parameters
-        cursor.execute(query, ( past_date, future_date))
+        """
+
+        # Execute the query with parameters for last and next weeks
+        cursor.execute(query, (last, next))
         matches = cursor.fetchall()
+
         result = []
-        for match in matches:
+        for row in matches:
+            if row[6] == 2001:
+               competition_name = "UCL"
+            elif row[6] == 2021:
+                competition_name = "EPL"
+            elif row[6] == 2015:
+                competition_name = "Ligue 1"
+            elif row[6] == 2014:
+                competition_name = "LaLiga"
+            elif row[6] == 2002:
+                competition_name = "Bundesliga"
+            elif row[6] == 2019:
+                competition_name = "Serie A"
+                
+            appended_matchday = f"{competition_name} R{row[1]}"
             fixture_data = {
-                "match_id": match[0],
-                "home_team": match[1],
-                "away_team": match[2],
-                "home_score": match[3] if match[3] is not None else "N/A",
-                "away_score": match[4] if match[4] is not None else "N/A",
-                "date": match[5].strftime('%Y-%m-%d'),
-                "competition": match[6],
-                "matchday": match[7]
-            
+                "match_date": row[0],
+                "matchday": appended_matchday,
+                "home_team": row[2],
+                "away_team": row[3],
+                "home_score": row[4],
+                "away_score": row[5],
+                "competition_id": row[6], 
+                "match_id": row[7]
             }
             result.append(fixture_data)
+
         return result
-
-    # def get_subscribed_matches(user_id):
-    #     """
-    #     Fetch all matches that a user is subscribed to without a limit.
-    #     """
-    #     query = """
-    #     SELECT 
-    #         m.match_id,
-    #         t1.short_name AS home_team,
-    #         t2.short_name AS away_team,
-    #         s.full_time_home,
-    #         s.full_time_away,
-    #         m.match_utc_date,
-    #         c.competition_name,
-    #         m.matchday
-    #     FROM matches m
-    #     JOIN teams t1 ON m.home_team_id = t1.team_id
-    #     JOIN teams t2 ON m.away_team_id = t2.team_id
-    #     LEFT JOIN scores s ON m.match_id = s.match_id
-    #     JOIN competitions c ON m.competition_id = c.competition_id
-    #     JOIN user_subscriptions us ON us.match_id = m.match_id
-    #     WHERE us.user_id = %s
-    #     ORDER BY m.match_utc_date ASC
-    #     """
-    #     cursor.execute(query, (user_id,))
-    #     matches = cursor.fetchall()
-
-    #     return [
-    #         {
-    #             "match_id": row[0],
-    #             "home_team": row[1],
-    #             "away_team": row[2],
-    #             "home_score": row[3] if row[3] is not None else "N/A",
-    #             "away_score": row[4] if row[4] is not None else "N/A",
-    #             "date": row[5].strftime('%Y-%m-%d'),
-    #             "competition": row[6],
-    #             "matchday": row[7]
-    #         }
-    #         for row in matches
-    #     ]
-
-
 
 
     def get_player_stats(competition_id):
