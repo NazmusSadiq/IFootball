@@ -41,44 +41,26 @@ class UILoader:
         widget = qtw.QWidget()
         layout = qtw.QVBoxLayout()
 
-        # Helper to convert string dates to datetime.date objects
-        def parse_date(date_str):
-            return datetime.strptime(date_str, '%Y-%m-%d').date()
-
-        # Get today's date for comparison
-        today = datetime.utcnow().date()
-
-        # Separate matches into previous and next
-        previous_matches = [match for match in matches if parse_date(match['date']) < today]
-        next_matches = [match for match in matches if parse_date(match['date']) >= today]
-        layout.addWidget(qtw.QLabel(f"{matches[1]['competition']}"))
-        # Display previous matches
-        if previous_matches:
-            layout.addWidget(qtw.QLabel("<b>Previous Matches</b>"))
+        if matches:
+            # Create headers
+            Matches.create_headers(layout)
+            layout.addSpacing(10)
+            if isinstance(matches, list):  # Team stats should be a list of dicts
+                team_rank = 1
+                for match in matches:
+                    if isinstance(match, dict):
+                        Matches.create_match_row(layout, match)          
+                    else:
+                        print(f"Unexpected stat format: {match}")
+                        stat_label = qtw.QLabel("Invalid stat format")
+                        layout.addWidget(stat_label)
+            else:
+                print(f"Unexpected stat structure for team stats: {match}")
+        else:
+            no_match_label = qtw.QLabel("No matches available")
+            layout.addWidget(no_match_label)
             
-            for match in previous_matches:
-                
-                # print(match)
-                match_label = qtw.QLabel(f"{match['home_team']} vs {match['away_team']} | {match['home_score']} - {match['away_score']} | {match['date']}")
-                layout.addWidget(match_label)
-        else:
-            layout.addWidget(qtw.QLabel("No previous matches available"))
-
-        # Add spacing between sections
-        layout.addSpacing(20)
-
-        # Display next matches
-        if next_matches:
-            layout.addWidget(qtw.QLabel("<b>Next Matches</b>"))
-            for match in next_matches:
-                match_label = qtw.QLabel(f"{match['home_team']} vs {match['away_team']} | {match['date']}")
-                layout.addWidget(match_label)
-        else:
-            layout.addWidget(qtw.QLabel("No upcoming matches available"))
-
-        # Add a spacer to ensure proper spacing at the bottom
         layout.addStretch()
-
         widget.setLayout(layout)
         return widget
 
@@ -88,10 +70,6 @@ class UILoader:
         main_layout = qtw.QVBoxLayout()
     
         UILoader.clear_section(main_layout)  # Clear previous content if any
-    
-        # Create a scrollable area to contain all competitions
-        scroll_area = qtw.QScrollArea()
-        scroll_area.setWidgetResizable(True)
     
         # Widget to hold all competitions in a vertical layout
         competitions_widget = qtw.QWidget()
@@ -125,12 +103,8 @@ class UILoader:
     
         # Add a spacer to ensure proper alignment
         competitions_layout.addStretch()
-    
-        # Set competitions widget inside the scroll area
-        scroll_area.setWidget(competitions_widget)
-    
-        # Add scroll area to the main layout
-        main_layout.addWidget(scroll_area)
+        
+        main_layout.addWidget(competitions_widget)
     
         match_tab.setLayout(main_layout)
     
@@ -164,23 +138,27 @@ class UILoader:
         sub_stack = qtw.QStackedWidget(main_window)
 
         # Add subtabs with match data from matches.py
-        sub_stack.addWidget(UILoader.create_main_match_tab())  # Main
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_league_matches(2014)))  # Subscribed
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_league_matches(2001)))  # UCL
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_league_matches(2021)))  # EPL
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_league_matches(2014)))  # La Liga
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_league_matches(2002)))  # Bundesliga
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_league_matches(2019)))  # Serie A
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_league_matches(2015)))  # Ligue 1
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures()))  # Main for now
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2001)))  # Subscribed for now
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2001,2,2)))  # UCL
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2021,2,2)))  # EPL
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2014)))  # La Liga
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2002)))  # Bundesliga
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2019)))  # Serie A
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2015)))  # Ligue 1
 
         section_layout.addWidget(sub_stack)
 
         # Create a scroll area to wrap the section widget
         scroll_area = qtw.QScrollArea()
-        scroll_area.setWidgetResizable(True)  # Ensure resizing works dynamically
+        scroll_area.setWidgetResizable(True)  
+        scroll_area.setVerticalScrollBarPolicy(qtc.Qt.ScrollBarAsNeeded)  
+        scroll_area.setHorizontalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOff)  
         scroll_area.setWidget(section_widget)
-
-        main_layout.addWidget(scroll_area)  # Add the scroll area to the main layout
+        section_widget.setSizePolicy(qtw.QSizePolicy.Fixed, qtw.QSizePolicy.Expanding)
+        section_widget.setMinimumWidth(scroll_area.viewport().width())  
+        
+        main_layout.addWidget(scroll_area)
 
         # Subtab buttons
         sub_tab_bar_layout = qtw.QHBoxLayout()
@@ -201,10 +179,6 @@ class UILoader:
 
         return match_tab
     
-   
-
-
-
 
     @staticmethod
     def update_sub_tab_buttons(layout, active_index, active_button, sub_stack):
@@ -216,7 +190,6 @@ class UILoader:
                 button.setStyleSheet("QPushButton { text-align: center; }") 
         sub_stack.setCurrentIndex(active_index)
 
-    # Create Stats tab content with different subtabs
     # Create Stats tab content with different subtabs
     @staticmethod
     def create_stats_tab(main_window):
@@ -241,7 +214,7 @@ class UILoader:
             # Create sub-tabs for standings, stats, and fixtures
             standings_tab = UILoader.create_sub_tab_stats(Queries.get_competition_standings(competition_id),0)
             teams_tab =UILoader.create_sub_tab_stats(Queries.get_competition_stats(competition_id),1)
-            players_tab = qtw.QWidget() #UILoader.create_sub_tab_stats(Queries.get_competition_stats(competition_id),2) 
+            players_tab = UILoader.create_sub_tab_stats(Queries.get_player_stats(competition_id),2) 
             fixtures_tab = UILoader.create_sub_tab_stats(Queries.get_fixtures(competition_id),3)
 
             secondary_stack.addWidget(standings_tab)  # Standings
@@ -260,8 +233,20 @@ class UILoader:
         league_stack.addWidget(create_secondary_stack(2015))  # Ligue 1
 
         section_layout.addWidget(league_stack)
-        main_layout.addWidget(section_widget)
+        
+        scroll_area = qtw.QScrollArea()
+        scroll_area.setWidgetResizable(True)  
+        scroll_area.setVerticalScrollBarPolicy(qtc.Qt.ScrollBarAsNeeded)  
+        scroll_area.setHorizontalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOff)  
+        scroll_area.setWidget(section_widget)
+        section_widget.setSizePolicy(qtw.QSizePolicy.Fixed, qtw.QSizePolicy.Expanding)
+        section_widget.setMinimumWidth(scroll_area.viewport().width())  
+        
+        main_layout.addWidget(scroll_area)
 
+
+        sub_index=0
+        
         # League subtab buttons
         league_tab_bar_layout = qtw.QHBoxLayout()
         leagues = ["UCL", "EPL", "La Liga", "Bundesliga", "Serie A", "Ligue 1"]
@@ -269,6 +254,7 @@ class UILoader:
             btn = qtw.QPushButton(name)
             btn.setStyleSheet("QPushButton { text-align: center; }")
             btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(league_tab_bar_layout, idx, btn, league_stack))
+            btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(secondary_tab_bar_layout, sub_index, secondary_tab_bar_layout.itemAt(1).widget(), league_stack.currentWidget()))
             league_tab_bar_layout.addWidget(btn)
 
         # Add league tab buttons at the top
@@ -280,15 +266,15 @@ class UILoader:
         for i, name in enumerate(sub_tabs):
             btn = qtw.QPushButton(name)
             btn.setStyleSheet("QPushButton { text-align: center; }")
-            btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(secondary_tab_bar_layout, idx, btn, league_stack.currentWidget()))
+            btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(secondary_tab_bar_layout, idx, btn, league_stack.currentWidget(),0))
             secondary_tab_bar_layout.addWidget(btn)
 
         # Insert the secondary sub-tab buttons below the league buttons
         main_layout.insertLayout(1, secondary_tab_bar_layout)
-
+        
         # Set default selection for both tabs
         UILoader.update_sub_tab_buttons(league_tab_bar_layout, 0, league_tab_bar_layout.itemAt(0).widget(), league_stack)
-        UILoader.update_sub_tab_buttons(secondary_tab_bar_layout, 0, secondary_tab_bar_layout.itemAt(0).widget(), league_stack.currentWidget())
+        UILoader.update_sub_tab_buttons(secondary_tab_bar_layout, 0, secondary_tab_bar_layout.itemAt(1).widget(), league_stack.currentWidget())  
 
         stats_tab.setLayout(main_layout)
 
@@ -297,31 +283,63 @@ class UILoader:
 
     # Function to create content for each sub-tab with stats data
     @staticmethod
-    def create_sub_tab_stats(stats,idx):
+    def create_sub_tab_stats(stats, idx):
         widget = qtw.QWidget()
         layout = qtw.QVBoxLayout()
 
         if stats:
             # Create headers
-            Stats.create_headers(layout,idx)
+            Stats.create_headers(layout, idx)
             layout.addSpacing(10)
-            team_rank = 1
-            for stat in stats:
-                if isinstance(stat, dict):
-                    Stats.create_team_row(layout, team_rank, stat,idx)
-                    team_rank += 1
+
+            if idx == 2:  # Player stats
+                for category, player_stats in stats.items():
+                    if player_stats:
+                        category_label = qtw.QLabel(f"{category.replace('_', ' ').title()}")
+                        category_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+                        layout.addWidget(category_label)
+
+                        for player_stat in player_stats:
+                            if category == "top_scorers":
+                                stat_label = f"{player_stat['player_name']}    Goals: {player_stat['total_goals']}"
+                            elif category == "top_assist_providers":
+                                stat_label = f"{player_stat['player_name']}    Assists: {player_stat['total_assists']}"
+                            elif category == "top_yellow_card_recipients":
+                                stat_label = f"{player_stat['player_name']}    Yellow Cards: {player_stat['total_yellow_cards']}"
+                            elif category == "top_red_card_recipients":
+                                stat_label = f"{player_stat['player_name']}    Red Cards: {player_stat['total_red_cards']}"
+                            elif category == "top_clean_sheet_providers":
+                                stat_label = f"{player_stat['player_name']}    Clean Sheets: {player_stat['total_clean_sheets']}"
+                        
+                            layout.addWidget(qtw.QLabel(stat_label))
+                        layout.addSpacing(10)
+                    else:
+                        no_stat_label = qtw.QLabel(f"No stats available for {category.replace('_', ' ').title()}")
+                        layout.addWidget(no_stat_label)
+
+            else:  # Team stats
+                # Ensure only team-related stats are handled here
+                if isinstance(stats, list):  # Team stats should be a list of dicts
+                    team_rank = 1
+                    for stat in stats:
+                        if isinstance(stat, dict):
+                            Stats.create_team_row(layout, team_rank, stat, idx)
+                            team_rank += 1
+                        else:
+                            print(f"Unexpected stat format: {stat}")
+                            stat_label = qtw.QLabel("Invalid stat format")
+                            layout.addWidget(stat_label)
                 else:
-                    stat_label = qtw.QLabel("Invalid stat format")
-                    layout.addWidget(stat_label)
+                    print(f"Unexpected stat structure for team stats: {stats}")
         else:
             no_stat_label = qtw.QLabel("No stats available")
             layout.addWidget(no_stat_label)
 
-        # Add a spacer to ensure proper spacing
         layout.addStretch()
-
         widget.setLayout(layout)
         return widget
+
+
     
     @staticmethod
     def create_favorite_tab(main_window):
@@ -380,17 +398,17 @@ class UILoader:
 
         return favorite_tab
 
-
     @staticmethod
-    def update_sub_tab_buttons(layout, active_index, active_button, sub_stack):
+    def update_sub_tab_buttons(layout, active_index, active_button, sub_stack, should=1):
         for i in range(layout.count()):
             button = layout.itemAt(i).widget()
-            if i == active_index:
+            if should==0:
+                sub_index=active_index
+            if i == active_index: 
                 button.setStyleSheet("QPushButton { text-align: center; font-weight: bold; }")
             else:
                 button.setStyleSheet("QPushButton { text-align: center; }")
         sub_stack.setCurrentIndex(active_index)
-
 
 
     

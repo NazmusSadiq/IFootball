@@ -4,7 +4,7 @@ from PyQt5 import QtCore as qtc
 class Matches:
     column_widths = {
         "Date": 150,
-        "Round": 50,
+        "Matchday": 100,
         "Home": 100,
         "Score": 100,
         "Away": 100,
@@ -14,7 +14,7 @@ class Matches:
     @staticmethod
     def create_headers(layout):
         header_layout = qtw.QGridLayout()
-        headers = ["Date", "Round", "Home", "Score", "Away"]
+        headers = ["Date", "Matchday", "Home", "Score", "Away"]
 
         for idx, header in enumerate(headers):
             label = qtw.QLabel(header)
@@ -29,21 +29,18 @@ class Matches:
         match_layout = qtw.QGridLayout()
 
         # Date Label
-        date_label = qtw.QLabel(match['match_date'])
+        date_label = qtw.QLabel(f"{match['match_date']}")
         date_label.setMinimumWidth(Matches.column_widths["Date"])
         match_layout.addWidget(date_label, 0, 0, alignment=qtc.Qt.AlignLeft)
 
-        # Round Label
-        round_label = qtw.QLabel(match['round'])
-        round_label.setMinimumWidth(Matches.column_widths["Round"])
+        round_label = qtw.QLabel(f"{match['matchday']}")
+        round_label.setMinimumWidth(Matches.column_widths["Matchday"])
         match_layout.addWidget(round_label, 0, 1, alignment=qtc.Qt.AlignCenter)
 
-        # Home Team Label
-        home_team_label = qtw.QLabel(match['home_team'])
+        home_team_label = qtw.QLabel(f"{match['home_team']}")
         home_team_label.setMinimumWidth(Matches.column_widths["Home"])
         match_layout.addWidget(home_team_label, 0, 2, alignment=qtc.Qt.AlignLeft)
 
-        # Score Calculation
         home_score = match['home_score']
         away_score = match['away_score']
         
@@ -54,10 +51,9 @@ class Matches:
             score_display = f"{home_score} : {away_score}"
 
         score_label = qtw.QLabel(score_display)
-        score_label.setMinimumWidth(Matches.column_widths["Score"])
+        score_label.setMinimumWidth(Matches.column_widths[""])
         match_layout.addWidget(score_label, 0, 3, alignment=qtc.Qt.AlignCenter)
 
-        # Away Team Label
         away_team_label = qtw.QLabel(match['away_team'])
         away_team_label.setMinimumWidth(Matches.column_widths["Away"])
         match_layout.addWidget(away_team_label, 0, 4, alignment=qtc.Qt.AlignLeft)
