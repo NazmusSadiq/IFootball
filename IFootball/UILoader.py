@@ -64,51 +64,51 @@ class UILoader:
         widget.setLayout(layout)
         return widget
 
-    @staticmethod
-    def create_main_match_tab():
-        match_tab = qtw.QWidget()
-        main_layout = qtw.QVBoxLayout()
+    # @staticmethod
+    # def create_main_match_tab():
+    #     match_tab = qtw.QWidget()
+    #     main_layout = qtw.QVBoxLayout()
     
-        UILoader.clear_section(main_layout)  # Clear previous content if any
+    #     UILoader.clear_section(main_layout)  # Clear previous content if any
     
-        # Widget to hold all competitions in a vertical layout
-        competitions_widget = qtw.QWidget()
-        competitions_layout = qtw.QVBoxLayout(competitions_widget)
+    #     # Widget to hold all competitions in a vertical layout
+    #     competitions_widget = qtw.QWidget()
+    #     competitions_layout = qtw.QVBoxLayout(competitions_widget)
     
-        # Define competition IDs and their names
-        competitions = {
-            2014: "La Liga",
-            2001: "UCL",
-            2021: "EPL",
-            2002: "Bundesliga",
-            2019: "Serie A",
-            2015: "Ligue 1"
-        }
+    #     # Define competition IDs and their names
+    #     competitions = {
+    #         2014: "La Liga",
+    #         2001: "UCL",
+    #         2021: "EPL",
+    #         2002: "Bundesliga",
+    #         2019: "Serie A",
+    #         2015: "Ligue 1"
+    #     }
     
-        # Loop through competitions and add them to the layout
-        for comp_id, comp_name in competitions.items():
-            # Section header for the competition
-            header = qtw.QLabel(f"<b>{comp_name}</b>")
-            header.setAlignment(qtc.Qt.AlignCenter)
-            header.setStyleSheet("font-size: 18px; margin: 10px 0;")
+    #     # Loop through competitions and add them to the layout
+    #     for comp_id, comp_name in competitions.items():
+    #         # Section header for the competition
+    #         header = qtw.QLabel(f"<b>{comp_name}</b>")
+    #         header.setAlignment(qtc.Qt.AlignCenter)
+    #         header.setStyleSheet("font-size: 18px; margin: 10px 0;")
     
-            competitions_layout.addWidget(header)
+    #         competitions_layout.addWidget(header)
     
-            # Fetch and display matches for the competition
-            matches = Queries.get_league_matches(comp_id)
-            competitions_layout.addWidget(UILoader.create_sub_tab_match(matches))
+    #         # Fetch and display matches for the competition
+    #         matches = Queries.get_league_matches(comp_id)
+    #         competitions_layout.addWidget(UILoader.create_sub_tab_match(matches))
     
-            # Add spacing between competitions
-            competitions_layout.addSpacing(20)
+    #         # Add spacing between competitions
+    #         competitions_layout.addSpacing(20)
     
-        # Add a spacer to ensure proper alignment
-        competitions_layout.addStretch()
+    #     # Add a spacer to ensure proper alignment
+    #     competitions_layout.addStretch()
         
-        main_layout.addWidget(competitions_widget)
+    #     main_layout.addWidget(competitions_widget)
     
-        match_tab.setLayout(main_layout)
+    #     match_tab.setLayout(main_layout)
     
-        return match_tab
+    #     return match_tab
     
 
 
