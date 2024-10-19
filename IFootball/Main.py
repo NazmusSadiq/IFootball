@@ -4,7 +4,7 @@ import PyQt5.QtGui as qtg
 import PyQt5.QtCore as qtc
 from UILoader import UILoader  
 #import API_Call
-
+#  ami kaj kori vai
 class MainWindow(qtw.QWidget):
     def __init__(self):
         super().__init__()
