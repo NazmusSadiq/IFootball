@@ -16,6 +16,7 @@ class Stats:
         "YC": 50, 
         "RC": 50, 
         "Shots": 50,
+        "On Target": 50,
         "Offsides": 60,
         "Fouls": 50,
         "Date": 150, 
@@ -32,7 +33,9 @@ class Stats:
         if idx == 0:  
             headers = ["Team", "P", "W", "D", "L", "F/A", "Pts"]
         elif idx == 1:  
-            headers = ["Team", "P", "GF", "GA", "YC", "RC", "Shots", "Offsides", "Fouls"]
+            headers = ["Team", "P", "GF", "GA", "YC", "RC", "Shots", "On Target", "Offsides", "Fouls"]
+        elif idx == 2:  
+            headers = []
         elif idx == 3:
             headers = ["Date", "Round", "Home", "", "Away"]
 
@@ -60,7 +63,7 @@ class Stats:
                 f"{stat['points']}"  
             ]
         elif idx == 1:
-            team_label = qtw.QLabel(f"{team_rank}. {stat['team_name']}")
+            team_label = qtw.QLabel(f"{stat['team_name']}")
             team_label.setMinimumWidth(Stats.column_widths["Team"])
             team_layout.addWidget(team_label, 0, 0, alignment=qtc.Qt.AlignLeft)
             stats = [
@@ -70,6 +73,7 @@ class Stats:
                 f"{stat['yellow_cards']}",  
                 f"{stat['red_cards']}",
                 f"{stat['total_shots']}",
+                f"{stat['on_target']}",
                 f"{stat['offsides']}",
                 f"{stat['fouls']}"
             ]

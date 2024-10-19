@@ -125,7 +125,6 @@ class UILoader:
         sub_stack.setCurrentIndex(active_index)
 
     # Create Stats tab content with different subtabs
-    # Create Stats tab content with different subtabs
     @staticmethod
     def create_stats_tab(main_window):
         stats_tab = qtw.QWidget()
@@ -149,7 +148,7 @@ class UILoader:
             # Create sub-tabs for standings, stats, and fixtures
             standings_tab = UILoader.create_sub_tab_stats(Queries.get_competition_standings(competition_id),0)
             teams_tab =UILoader.create_sub_tab_stats(Queries.get_competition_stats(competition_id),1)
-            players_tab = qtw.QWidget() #UILoader.create_sub_tab_stats(Queries.get_competition_stats(competition_id),2) 
+            players_tab = UILoader.create_sub_tab_stats(Queries.get_player_stats(competition_id),2) 
             fixtures_tab = UILoader.create_sub_tab_stats(Queries.get_fixtures(competition_id),3)
 
             secondary_stack.addWidget(standings_tab)  # Standings
@@ -170,6 +169,8 @@ class UILoader:
         section_layout.addWidget(league_stack)
         main_layout.addWidget(section_widget)
 
+        sub_index=0
+        
         # League subtab buttons
         league_tab_bar_layout = qtw.QHBoxLayout()
         leagues = ["UCL", "EPL", "La Liga", "Bundesliga", "Serie A", "Ligue 1"]
@@ -177,6 +178,7 @@ class UILoader:
             btn = qtw.QPushButton(name)
             btn.setStyleSheet("QPushButton { text-align: center; }")
             btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(league_tab_bar_layout, idx, btn, league_stack))
+            btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(secondary_tab_bar_layout, sub_index, secondary_tab_bar_layout.itemAt(1).widget(), league_stack.currentWidget()))
             league_tab_bar_layout.addWidget(btn)
 
         # Add league tab buttons at the top
@@ -188,15 +190,15 @@ class UILoader:
         for i, name in enumerate(sub_tabs):
             btn = qtw.QPushButton(name)
             btn.setStyleSheet("QPushButton { text-align: center; }")
-            btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(secondary_tab_bar_layout, idx, btn, league_stack.currentWidget()))
+            btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(secondary_tab_bar_layout, idx, btn, league_stack.currentWidget(),0))
             secondary_tab_bar_layout.addWidget(btn)
 
         # Insert the secondary sub-tab buttons below the league buttons
         main_layout.insertLayout(1, secondary_tab_bar_layout)
-
+        
         # Set default selection for both tabs
         UILoader.update_sub_tab_buttons(league_tab_bar_layout, 0, league_tab_bar_layout.itemAt(0).widget(), league_stack)
-        UILoader.update_sub_tab_buttons(secondary_tab_bar_layout, 0, secondary_tab_bar_layout.itemAt(0).widget(), league_stack.currentWidget())
+        UILoader.update_sub_tab_buttons(secondary_tab_bar_layout, 0, secondary_tab_bar_layout.itemAt(1).widget(), league_stack.currentWidget())  
 
         stats_tab.setLayout(main_layout)
 
@@ -205,31 +207,63 @@ class UILoader:
 
     # Function to create content for each sub-tab with stats data
     @staticmethod
-    def create_sub_tab_stats(stats,idx):
+    def create_sub_tab_stats(stats, idx):
         widget = qtw.QWidget()
         layout = qtw.QVBoxLayout()
 
         if stats:
             # Create headers
-            Stats.create_headers(layout,idx)
+            Stats.create_headers(layout, idx)
             layout.addSpacing(10)
-            team_rank = 1
-            for stat in stats:
-                if isinstance(stat, dict):
-                    Stats.create_team_row(layout, team_rank, stat,idx)
-                    team_rank += 1
+
+            if idx == 2:  # Player stats
+                for category, player_stats in stats.items():
+                    if player_stats:
+                        category_label = qtw.QLabel(f"{category.replace('_', ' ').title()}")
+                        category_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+                        layout.addWidget(category_label)
+
+                        for player_stat in player_stats:
+                            if category == "top_scorers":
+                                stat_label = f"{player_stat['player_name']}    Goals: {player_stat['total_goals']}"
+                            elif category == "top_assist_providers":
+                                stat_label = f"{player_stat['player_name']}    Assists: {player_stat['total_assists']}"
+                            elif category == "top_yellow_card_recipients":
+                                stat_label = f"{player_stat['player_name']}    Yellow Cards: {player_stat['total_yellow_cards']}"
+                            elif category == "top_red_card_recipients":
+                                stat_label = f"{player_stat['player_name']}    Red Cards: {player_stat['total_red_cards']}"
+                            elif category == "top_clean_sheet_providers":
+                                stat_label = f"{player_stat['player_name']}    Clean Sheets: {player_stat['total_clean_sheets']}"
+                        
+                            layout.addWidget(qtw.QLabel(stat_label))
+                        layout.addSpacing(10)
+                    else:
+                        no_stat_label = qtw.QLabel(f"No stats available for {category.replace('_', ' ').title()}")
+                        layout.addWidget(no_stat_label)
+
+            else:  # Team stats
+                # Ensure only team-related stats are handled here
+                if isinstance(stats, list):  # Team stats should be a list of dicts
+                    team_rank = 1
+                    for stat in stats:
+                        if isinstance(stat, dict):
+                            Stats.create_team_row(layout, team_rank, stat, idx)
+                            team_rank += 1
+                        else:
+                            print(f"Unexpected stat format: {stat}")
+                            stat_label = qtw.QLabel("Invalid stat format")
+                            layout.addWidget(stat_label)
                 else:
-                    stat_label = qtw.QLabel("Invalid stat format")
-                    layout.addWidget(stat_label)
+                    print(f"Unexpected stat structure for team stats: {stats}")
         else:
             no_stat_label = qtw.QLabel("No stats available")
             layout.addWidget(no_stat_label)
 
-        # Add a spacer to ensure proper spacing
         layout.addStretch()
-
         widget.setLayout(layout)
         return widget
+
+
     
     @staticmethod
     def create_favorite_tab(main_window):
@@ -288,17 +322,17 @@ class UILoader:
 
         return favorite_tab
 
-
     @staticmethod
-    def update_sub_tab_buttons(layout, active_index, active_button, sub_stack):
+    def update_sub_tab_buttons(layout, active_index, active_button, sub_stack, should=1):
         for i in range(layout.count()):
             button = layout.itemAt(i).widget()
-            if i == active_index:
+            if should==0:
+                sub_index=active_index
+            if i == active_index: 
                 button.setStyleSheet("QPushButton { text-align: center; font-weight: bold; }")
             else:
                 button.setStyleSheet("QPushButton { text-align: center; }")
         sub_stack.setCurrentIndex(active_index)
-
 
 
     
