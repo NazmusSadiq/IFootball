@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="210041139",
+    password="4444",
     database="IFootball"
 )
 cursor = db.cursor()
@@ -383,7 +383,138 @@ class Queries:
 
         return result
 
+    def get_league_matches(league_id):
+        """
+        Fetch all matches for a given league without a limit.
+        """
+        today = datetime.utcnow().date()
+        past_date = today - timedelta(days=15)
+        future_date = today + timedelta(days=17)
 
+        query = """
+        SELECT 
+            m.match_id,
+            t1.short_name AS home_team,
+            t2.short_name AS away_team,
+            s.full_time_home,
+            s.full_time_away,
+            m.match_utc_date,
+            c.competition_name,
+            m.matchday
+        FROM matches m
+        JOIN teams t1 ON m.home_team_id = t1.team_id
+        JOIN teams t2 ON m.away_team_id = t2.team_id
+        LEFT JOIN scores s ON m.match_id = s.match_id
+        JOIN competitions c ON m.competition_id = c.competition_id
+        WHERE m.competition_id = %s
+          AND m.match_utc_date BETWEEN %s AND %s
+        ORDER BY m.match_utc_date ASC
+    """
+    # Execute the query with the parameters
+        cursor.execute(query, (league_id, past_date, future_date))
+        matches = cursor.fetchall()  
+        result = []
+        for match in matches:
+            fixture_data = {
+                "match_id": match[0],
+                "home_team": match[1],
+                "away_team": match[2],
+                "home_score": match[3] if match[3] is not None else "N/A",
+                "away_score": match[4] if match[4] is not None else "N/A",
+                "date": match[5].strftime('%Y-%m-%d'),
+                "competition": match[6],
+                "matchday": match[7]
+            
+            }
+            result.append(fixture_data)
+        print(result)
+        return result
+
+    def get_main_matches():
+        """
+        Fetch all main matches without a limit.
+        """
+        today = datetime.utcnow().date()
+        past_date = today - timedelta(days=13)
+        future_date = today + timedelta(days=15)
+
+        query = """
+        SELECT 
+            m.match_id,
+            t1.short_name AS home_team,
+            t2.short_name AS away_team,
+            s.full_time_home,
+            s.full_time_away,
+            m.match_utc_date,
+            c.competition_name,
+            m.matchday
+        FROM matches m
+        JOIN teams t1 ON m.home_team_id = t1.team_id
+        JOIN teams t2 ON m.away_team_id = t2.team_id
+        LEFT JOIN scores s ON m.match_id = s.match_id
+        JOIN competitions c ON m.competition_id = c.competition_id
+          AND m.match_utc_date BETWEEN %s AND %s
+        ORDER BY m.competition_name
+        ORDER BY m.match_utc_date ASC
+    """
+    # Execute the query with the parameters
+        cursor.execute(query, ( past_date, future_date))
+        matches = cursor.fetchall()
+        result = []
+        for match in matches:
+            fixture_data = {
+                "match_id": match[0],
+                "home_team": match[1],
+                "away_team": match[2],
+                "home_score": match[3] if match[3] is not None else "N/A",
+                "away_score": match[4] if match[4] is not None else "N/A",
+                "date": match[5].strftime('%Y-%m-%d'),
+                "competition": match[6],
+                "matchday": match[7]
+            
+            }
+            result.append(fixture_data)
+        return result
+
+    # def get_subscribed_matches(user_id):
+    #     """
+    #     Fetch all matches that a user is subscribed to without a limit.
+    #     """
+    #     query = """
+    #     SELECT 
+    #         m.match_id,
+    #         t1.short_name AS home_team,
+    #         t2.short_name AS away_team,
+    #         s.full_time_home,
+    #         s.full_time_away,
+    #         m.match_utc_date,
+    #         c.competition_name,
+    #         m.matchday
+    #     FROM matches m
+    #     JOIN teams t1 ON m.home_team_id = t1.team_id
+    #     JOIN teams t2 ON m.away_team_id = t2.team_id
+    #     LEFT JOIN scores s ON m.match_id = s.match_id
+    #     JOIN competitions c ON m.competition_id = c.competition_id
+    #     JOIN user_subscriptions us ON us.match_id = m.match_id
+    #     WHERE us.user_id = %s
+    #     ORDER BY m.match_utc_date ASC
+    #     """
+    #     cursor.execute(query, (user_id,))
+    #     matches = cursor.fetchall()
+
+    #     return [
+    #         {
+    #             "match_id": row[0],
+    #             "home_team": row[1],
+    #             "away_team": row[2],
+    #             "home_score": row[3] if row[3] is not None else "N/A",
+    #             "away_score": row[4] if row[4] is not None else "N/A",
+    #             "date": row[5].strftime('%Y-%m-%d'),
+    #             "competition": row[6],
+    #             "matchday": row[7]
+    #         }
+    #         for row in matches
+    #     ]
 
 
 
