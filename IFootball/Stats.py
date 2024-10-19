@@ -20,7 +20,7 @@ class Stats:
         "Offsides": 60,
         "Fouls": 50,
         "Date": 150, 
-        "Round": 50,
+        "Matchday": 50,
         "Home":100,
         "Away":100,
         "": 50
@@ -37,7 +37,7 @@ class Stats:
         elif idx == 2:  
             headers = []
         elif idx == 3:
-            headers = ["Date", "Round", "Home", "", "Away"]
+            headers = ["Date", "Matchday", "Home", "", "Away"]
 
         for idx, header in enumerate(headers):
             label = qtw.QLabel(header)
@@ -83,7 +83,7 @@ class Stats:
             team_layout.addWidget(date_label, 0, 0, alignment=qtc.Qt.AlignLeft)
             
             round_label = qtw.QLabel(f"{stat['matchday']}")
-            round_label.setMinimumWidth(Stats.column_widths["Round"])
+            round_label.setMinimumWidth(Stats.column_widths["Matchday"])
             team_layout.addWidget(round_label, 0, 1, alignment=qtc.Qt.AlignCenter)
 
             home_team_label = qtw.QLabel(f"{stat['home_team']}")

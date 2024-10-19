@@ -69,7 +69,119 @@ class Queries:
             for row in matches
         ]
 
+    def get_team_stats_in_fav(team_id):
+            # Query to get overall team stats by competition
+            query = """
+            SELECT 
+                c.competition_name, 
+                COUNT(m.match_id) AS total_matches,
+                SUM(CASE 
+                    WHEN (m.home_team_id = %s AND s.full_time_home > s.full_time_away) OR (m.away_team_id = %s AND s.full_time_away > s.full_time_home) THEN 1 
+                    ELSE 0 
+                END) AS wins,
+                SUM(CASE 
+                    WHEN s.full_time_home = s.full_time_away THEN 1 
+                    ELSE 0 
+                END) AS draws,
+                SUM(CASE 
+                    WHEN (m.home_team_id = %s AND s.full_time_home < s.full_time_away) OR (m.away_team_id = %s AND s.full_time_away < s.full_time_home) THEN 1 
+                    ELSE 0 
+                END) AS losses,
+                SUM(CASE 
+                    WHEN m.home_team_id = %s THEN s.full_time_home 
+                    ELSE s.full_time_away 
+                END) AS goals_scored,
+                SUM(CASE 
+                    WHEN m.home_team_id = %s THEN s.full_time_away 
+                    ELSE s.full_time_home 
+                END) AS goals_conceded
+            FROM matches m
+            JOIN scores s ON m.match_id = s.match_id
+            JOIN competitions c ON m.competition_id = c.competition_id
+            WHERE m.home_team_id = %s OR m.away_team_id = %s
+            GROUP BY c.competition_name
+            """
+            cursor.execute(query, (team_id, team_id, team_id, team_id, team_id, team_id, team_id, team_id))
+            stats = cursor.fetchall()
 
+            # Query to get the biggest win by competition
+            biggest_win_query = """
+            SELECT 
+                c.competition_name,
+                m.match_utc_date,
+                t2.short_name AS opponent,
+                GREATEST(ABS(s.full_time_home - s.full_time_away), 0) AS goal_difference,
+                CASE 
+                    WHEN m.home_team_id = %s THEN s.full_time_home 
+                    ELSE s.full_time_away 
+                END AS team_goals,
+                CASE 
+                    WHEN m.home_team_id = %s THEN s.full_time_away 
+                    ELSE s.full_time_home 
+                END AS opponent_goals,
+                m.matchday 
+            FROM matches m
+            JOIN teams t2 ON (m.home_team_id = t2.team_id OR m.away_team_id = t2.team_id) AND t2.team_id != %s
+            JOIN scores s ON m.match_id = s.match_id
+            JOIN competitions c ON m.competition_id = c.competition_id
+            WHERE (m.home_team_id = %s OR m.away_team_id = %s) 
+              AND ((m.home_team_id = %s AND s.full_time_home > s.full_time_away) OR (m.away_team_id = %s AND s.full_time_away > s.full_time_home))
+            ORDER BY c.competition_name, goal_difference DESC, m.match_utc_date DESC
+            """
+            # Execute the query to fetch biggest wins
+            cursor.execute(biggest_win_query, (team_id, team_id, team_id, team_id, team_id, team_id, team_id))
+            biggest_wins = cursor.fetchall()
+
+            # Dictionary to hold the biggest win for each competition
+            biggest_win_dict = {}
+
+            for win in biggest_wins:
+                competition_name = win[0]
+                goal_difference = win[3]
+
+                # Check if this competition already has a biggest win
+                if competition_name in biggest_win_dict:
+                    # If current goal_difference is greater, replace the existing biggest win
+                    if goal_difference > biggest_win_dict[competition_name]['goal_difference']:
+                        biggest_win_dict[competition_name] = {
+                            "date": win[1].strftime('%Y-%m-%d'),
+                            "opponent": win[2],
+                            "goal_difference": goal_difference,
+                            "team_goals": win[4],
+                            "opponent_goals": win[5],
+                            "matchday": win[6]  # Add match day
+                        }
+                else:
+                    # If no entry for this competition, add it
+                    biggest_win_dict[competition_name] = {
+                        "date": win[1].strftime('%Y-%m-%d'),
+                        "opponent": win[2],
+                        "goal_difference": goal_difference,
+                        "team_goals": win[4],
+                        "opponent_goals": win[5],
+                        "matchday": win[6]  # Add match day
+                    }
+
+            # Formatting the result
+            result = []
+            for stat in stats:
+                biggest_win = biggest_win_dict.get(stat[0])  # Get the biggest win for the competition, or None if not available
+
+                competition_stat = {
+                    "competition": stat[0],
+                    "total_matches": stat[1],
+                    "wins": stat[2],
+                    "draws": stat[3],
+                    "losses": stat[4],
+                    "goals_scored": stat[5],
+                    "goals_conceded": stat[6],
+                    "goal_difference": stat[5] - stat[6],
+                    "biggest_win": biggest_win  # Pass the single biggest win for each competition if available
+                }
+
+                result.append(competition_stat)
+
+            return result
 
 
     def get_next_matches(team_id, limit=10):
@@ -306,6 +418,7 @@ class Queries:
         0 AS yellow_cards,  
         0 AS red_cards,
         0 AS total_shots,
+        0 AS on_target,
         0 AS offsides,
         0 AS fouls
     FROM teams t
@@ -313,7 +426,7 @@ class Queries:
     JOIN scores s ON m.match_id = s.match_id
     WHERE m.competition_id = %s
     GROUP BY t.short_name
-    ORDER BY goals_scored DESC, goals_conceded ASC
+    ORDER BY t.short_name ASC
         """
 
         cursor.execute(query, (competition_id,))
@@ -329,17 +442,29 @@ class Queries:
                 "yellow_cards": team[6],  # currently 0
                 "red_cards": team[7],
                 "total_shots": team[8],
-                "offsides": team[9],
-                "fouls": team[10]
+                "on_target": team[9],
+                "offsides": team[10],
+                "fouls": team[11]
             }
             result.append(team_stat)
 
         return result
 
+    def get_fixtures(competition_id=None, last=2, next=2):
+        # Default competition IDs if none is provided
+        default_competition_ids = [2001, 2021, 2015, 2014, 2002, 2019]
+    
+        # Use provided competition_id or default if None
+        if competition_id is None:
+            competition_ids = default_competition_ids
+        else:
+            competition_ids = [competition_id]
 
-    def get_fixtures(competition_id):
-    # Query to get last and next matches for teams in the specified competition
-        query = """
+        # Create placeholders for the query
+        placeholders = ', '.join(['%s'] * len(competition_ids))
+    
+        # Query to get fixtures from the past 'last' weeks, current week, and next 'next' weeks
+        query = f"""
         SELECT 
             m.match_utc_date,
             m.matchday,
@@ -347,6 +472,7 @@ class Queries:
             t2.short_name AS away_team,
             s.full_time_home AS home_score,
             s.full_time_away AS away_score,
+            m.competition_id,
             CASE 
                 WHEN m.match_utc_date < NOW() THEN 'Last Match'
                 ELSE 'Next Match'
@@ -355,38 +481,65 @@ class Queries:
         JOIN teams t1 ON m.home_team_id = t1.team_id
         JOIN teams t2 ON m.away_team_id = t2.team_id
         JOIN scores s ON m.match_id = s.match_id
-        WHERE m.competition_id = %s
-        AND (m.match_utc_date = (
-            SELECT MAX(m2.match_utc_date)
-            FROM matches m2
-            WHERE m2.competition_id = %s AND m2.match_utc_date < NOW()
-            AND (m2.home_team_id = m.home_team_id OR m2.away_team_id = m.home_team_id)
-        ) OR m.match_utc_date = (
-            SELECT MIN(m3.match_utc_date)
-            FROM matches m3
-            WHERE m3.competition_id = %s AND m3.match_utc_date > NOW()
-            AND (m3.home_team_id = m.home_team_id OR m3.away_team_id = m.home_team_id)
-        ))
+        WHERE m.competition_id IN ({placeholders})
+        AND m.match_utc_date BETWEEN DATE_SUB(CURDATE(), INTERVAL %s WEEK)  -- From 'last' weeks ago
+                            AND DATE_ADD(CURDATE(), INTERVAL %s WEEK)  -- To 'next' weeks in future
         ORDER BY m.match_utc_date ASC
         """
 
-        cursor.execute(query, (competition_id, competition_id, competition_id))
+        # Prepare parameters for the query
+        parameters = competition_ids + [last, next]
+
+        # Execute query with parameters
+        cursor.execute(query, parameters)
         fixtures = cursor.fetchall()
 
         result = []
         for fixture in fixtures:
-            fixture_data = {
-                "match_date": fixture[0],
-                "matchday": fixture[1],
-                "home_team": fixture[2],
-                "away_team": fixture[3],
-                "home_score": fixture[4],
-                "away_score": fixture[5],
-                "match_status": fixture[6]  # Last or Next match
-            }
+            if competition_id==None:
+                competition_name = ""
+                if fixture[6] == 2001:
+                    competition_name = "UCL"
+                elif fixture[6] == 2021:
+                    competition_name = "EPL"
+                elif fixture[6] == 2015:
+                    competition_name = "Ligue 1"
+                elif fixture[6] == 2014:
+                    competition_name = "LaLiga"
+                elif fixture[6] == 2002:
+                    competition_name = "Bundesliga"
+                elif fixture[6] == 2019:
+                    competition_name = "Serie A"
+
+                appended_matchday = f"{competition_name} R{fixture[1]}"
+                
+                fixture_data = {
+                    "match_date": fixture[0],
+                    "matchday": appended_matchday,
+                    "home_team": fixture[2],
+                    "away_team": fixture[3],
+                    "home_score": fixture[4],
+                    "away_score": fixture[5]
+                }
+            else:
+                fixture_data = {
+                    "match_date": fixture[0],
+                    "matchday": f"R{fixture[1]}",
+                    "home_team": fixture[2],
+                    "away_team": fixture[3],
+                    "home_score": fixture[4],
+                    "away_score": fixture[5],
+                }
+                
+            # If no competition_id is provided, add the default competition IDs to the result
+            if competition_id is None:
+                fixture_data["default_competition_ids"] = default_competition_ids
+        
             result.append(fixture_data)
 
         return result
+
+
 
     def get_league_matches(league_id):
         """
