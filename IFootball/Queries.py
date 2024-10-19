@@ -427,7 +427,6 @@ class Queries:
             
             }
             result.append(fixture_data)
-        print(result)
         return result
 
     def get_main_matches():
