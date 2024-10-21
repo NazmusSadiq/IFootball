@@ -12,7 +12,7 @@ class Matches:
         "Away": 150,
         "": 70  
     }
-
+    image_cache = {} 
     @staticmethod
     def create_headers(layout):
         header_layout = qtw.QGridLayout()
@@ -76,15 +76,23 @@ class Matches:
 
         # Add the match layout to the main layout
         layout.addLayout(match_layout)
+    @staticmethod
+    def get_bookmark_image(subscribed):
+        image_name = "subscribed.png" if subscribed == 'Yes' else "notSubscribed.png"
+        # Check if the image is already cached
+        if image_name not in Matches.image_cache:
+            # Load and cache the image if not already done
+            image_path = os.path.join(os.path.dirname(__file__), 'images', image_name)
+            pixmap = qtg.QPixmap(image_path).scaled(30, 30, qtc.Qt.KeepAspectRatio)
+            Matches.image_cache[image_name] = pixmap
+
+        return Matches.image_cache[image_name]
 
     @staticmethod
     def set_bookmark_image(label, subscribed):
-        """Sets the appropriate bookmark image based on subscription status."""
-        image_name = "subscribed.png" if subscribed == 'Yes' else "notSubscribed.png"
-        pixmap = qtg.QPixmap(os.path.join(os.path.dirname(__file__), 'images', image_name))
-        pixmap = pixmap.scaled(30, 30, qtc.Qt.KeepAspectRatio)
+        """Sets the bookmark image to the label."""
+        pixmap = Matches.get_bookmark_image(subscribed)
         label.setPixmap(pixmap)
-        print(subscribed)
 
     @staticmethod
     def toggle_bookmark(label, match):
