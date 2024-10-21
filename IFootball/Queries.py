@@ -46,7 +46,8 @@ class Queries:
             c.competition_name,  
             m.matchday,
             m.home_team_id,
-            m.away_team_id            
+            m.away_team_id,
+            m.subscribed            
         FROM matches m
         JOIN teams t1 ON m.home_team_id = t1.team_id
         JOIN teams t2 ON m.away_team_id = t2.team_id
@@ -71,7 +72,8 @@ class Queries:
                 "competition": row[6],  
                 "matchday": row[7],
                 "home_team_id": row[8],
-                "away_team_id": row[9]
+                "away_team_id": row[9],
+                "subscribed": row[10]
             }
             for row in matches
         ]
@@ -201,7 +203,8 @@ class Queries:
             c.competition_name,   
             m.matchday,
             m.home_team_id,
-            m.away_team_id          
+            m.away_team_id,
+            m.subscribed          
         FROM matches m
         JOIN teams ht ON m.home_team_id = ht.team_id
         JOIN teams at ON m.away_team_id = at.team_id
@@ -224,7 +227,8 @@ class Queries:
                 "competition": row[4],  # Competition name
                 "matchday": row[5],  # Matchday
                 "home_team_id": row[6],
-                "away_team_id": row[7]
+                "away_team_id": row[7],
+                "subscribed": row[8]
             }
             for row in matches
         ]
@@ -487,6 +491,7 @@ class Queries:
             m.home_team_id,
             m.away_team_id,
             m.match_id,
+            m.subscribed,
             CASE 
                 WHEN m.match_utc_date < NOW() THEN 'Last Match'
                 ELSE 'Next Match'
@@ -536,7 +541,8 @@ class Queries:
                     "away_score": fixture[5],
                     "home_team_id": fixture[7],
                     "away_team_id": fixture[8],
-                    "match_id": fixture[9]
+                    "match_id": fixture[9],
+                    "subscribed": fixture[10]
                 }
             else:
                 fixture_data = {
@@ -548,7 +554,8 @@ class Queries:
                     "away_score": fixture[5],
                     "home_team_id": fixture[7],
                     "away_team_id": fixture[8],
-                    "match_id": fixture[9]
+                    "match_id": fixture[9],
+                    "subscribed": fixture[10]
                 }
                 
             # If no competition_id is provided, add the default competition IDs to the result
@@ -569,60 +576,61 @@ class Queries:
         cursor.execute(query, (favorite_team_id, favorite_team_id))
         db.commit()
         
-    def set_match_as_subscribed(match_id):
+    def toggle_match_as_subscribed(match_id, new_status):
         query = """
             UPDATE matches
-            SET subscribed = 'Yes'
+            SET subscribed = %s
             WHERE match_id =%s
         """
-        cursor.execute(query, (match_id))
+        cursor.execute(query, (new_status,match_id))
         db.commit()
+        print(match_id, new_status)
         
-    def get_league_matches(league_id):
-        """
-        Fetch all matches for a given league without a limit.
-        """
-        today = datetime.utcnow().date()
-        past_date = today - timedelta(days=15)
-        future_date = today + timedelta(days=17)
+    # def get_league_matches(league_id):
+    #     """
+    #     Fetch all matches for a given league without a limit.
+    #     """
+    #     today = datetime.utcnow().date()
+    #     past_date = today - timedelta(days=15)
+    #     future_date = today + timedelta(days=17)
 
-        query = """
-        SELECT 
-            m.match_id,
-            t1.short_name AS home_team,
-            t2.short_name AS away_team,
-            s.full_time_home,
-            s.full_time_away,
-            m.match_utc_date,
-            c.competition_name,
-            m.matchday
-        FROM matches m
-        JOIN teams t1 ON m.home_team_id = t1.team_id
-        JOIN teams t2 ON m.away_team_id = t2.team_id
-        LEFT JOIN scores s ON m.match_id = s.match_id
-        JOIN competitions c ON m.competition_id = c.competition_id
-        WHERE m.competition_id = %s
-          AND m.match_utc_date BETWEEN %s AND %s
-        ORDER BY m.match_utc_date ASC
-    """
+    #     query = """
+    #     SELECT 
+    #         m.match_id,
+    #         t1.short_name AS home_team,
+    #         t2.short_name AS away_team,
+    #         s.full_time_home,
+    #         s.full_time_away,
+    #         m.match_utc_date,
+    #         c.competition_name,
+    #         m.matchday
+    #     FROM matches m
+    #     JOIN teams t1 ON m.home_team_id = t1.team_id
+    #     JOIN teams t2 ON m.away_team_id = t2.team_id
+    #     LEFT JOIN scores s ON m.match_id = s.match_id
+    #     JOIN competitions c ON m.competition_id = c.competition_id
+    #     WHERE m.competition_id = %s
+    #       AND m.match_utc_date BETWEEN %s AND %s
+    #     ORDER BY m.match_utc_date ASC
+    # """
     # Execute the query with the parameters
-        cursor.execute(query, (league_id, past_date, future_date))
-        matches = cursor.fetchall()  
-        result = []
-        for match in matches:
-            fixture_data = {
-                "match_id": match[0],
-                "home_team": match[1],
-                "away_team": match[2],
-                "home_score": match[3] if match[3] is not None else "N/A",
-                "away_score": match[4] if match[4] is not None else "N/A",
-                "date": match[5].strftime('%Y-%m-%d'),
-                "competition": match[6],
-                "matchday": match[7]
+        # cursor.execute(query, (league_id, past_date, future_date))
+        # matches = cursor.fetchall()  
+        # result = []
+        # for match in matches:
+        #     fixture_data = {
+        #         "match_id": match[0],
+        #         "home_team": match[1],
+        #         "away_team": match[2],
+        #         "home_score": match[3] if match[3] is not None else "N/A",
+        #         "away_score": match[4] if match[4] is not None else "N/A",
+        #         "date": match[5].strftime('%Y-%m-%d'),
+        #         "competition": match[6],
+        #         "matchday": match[7]
             
-            }
-            result.append(fixture_data)
-        return result
+        #     }
+        #     result.append(fixture_data)
+        # return result
 
     def get_subscribed_matches(last=2, next=2):
         query = """
@@ -636,7 +644,8 @@ class Queries:
             m.competition_id,
             m.match_id,
             m.home_team_id,
-            m.away_team_id
+            m.away_team_id,
+            m.subscribed
         FROM matches m
         JOIN teams t1 ON m.home_team_id = t1.team_id
         JOIN teams t2 ON m.away_team_id = t2.team_id
@@ -677,7 +686,8 @@ class Queries:
                 "competition_id": row[6], 
                 "match_id": row[7],
                 "home_team_id": row[8],
-                "away_team_id": row[9]
+                "away_team_id": row[9],
+                "subscribed": row[10]
             }
             result.append(fixture_data)
 

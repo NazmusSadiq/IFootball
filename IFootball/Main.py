@@ -10,7 +10,7 @@ class MainWindow(qtw.QWidget):
         super().__init__()
 
         self.setWindowTitle("IFootball")
-        self.setGeometry(400, 100, 500, 800)
+        self.setGeometry(400, 100, 900, 800)
         self.setLayout(qtw.QVBoxLayout())
 
         self.stack = qtw.QStackedWidget(self)

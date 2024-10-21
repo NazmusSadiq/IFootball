@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets as qtw
-from PyQt5 import QtCore as qtc , QtGui as qtg
+from PyQt5 import QtCore as qtc, QtGui as qtg
 import os
+from Queries import Queries
 
 class Matches:
     column_widths = {
@@ -9,16 +10,17 @@ class Matches:
         "Home": 150,
         "Score": 100,
         "Away": 150,
-        "": 50
+        "": 70  
     }
+
     @staticmethod
     def create_headers(layout):
         header_layout = qtw.QGridLayout()
-        headers = ["Date", "Matchday", "Home", "Score", "Away"]
+        headers = ["Date", "Matchday", "Home", "Score", "Away", ""]
 
         for idx, header in enumerate(headers):
             label = qtw.QLabel(header)
-            label.setFixedWidth(Matches.column_widths[header])
+            label.setFixedWidth(Matches.column_widths.get(header, 50))
             header_layout.addWidget(label, 0, idx, alignment=qtc.Qt.AlignCenter)
 
         layout.addLayout(header_layout)
@@ -48,15 +50,13 @@ class Matches:
         # Score Label
         home_score = match['home_score']
         away_score = match['away_score']
-        
-        current_match_id = match['match_id']
-         # Displaying score or 'vs' if scores are invalid
-        if home_score is None or away_score is None or home_score < 0 or away_score < 0:
-            score_display = "  vs"
-        else:
-            score_display = f"{home_score} : {away_score}"
+        score_display = (
+            f"{home_score} : {away_score}"
+            if home_score is not None and away_score is not None and home_score >= 0 and away_score >= 0
+            else "  vs"
+        )
         score_label = qtw.QLabel(score_display)
-        score_label.setMinimumWidth(Matches.column_widths[""])
+        score_label.setMinimumWidth(Matches.column_widths["Score"])
         match_layout.addWidget(score_label, 0, 3, alignment=qtc.Qt.AlignCenter)
 
         # Away Team Crest and Name
@@ -66,9 +66,32 @@ class Matches:
         away_team_layout.addWidget(away_team_label)
         away_team_layout.addWidget(Matches.get_team_crest(match['away_team_id']))
         match_layout.addLayout(away_team_layout, 0, 4)
-        # print(match)
+
+        # Bookmark Toggle
+        bookmark_label = qtw.QLabel()
+        Matches.set_bookmark_image(bookmark_label, match.get('subscribed'))
+        bookmark_label.mousePressEvent = lambda event: Matches.toggle_bookmark(bookmark_label, match)
+        # print(match.get('subscribed','vgdcgvc'))
+        match_layout.addWidget(bookmark_label, 0, 5, alignment=qtc.Qt.AlignCenter)
+
         # Add the match layout to the main layout
         layout.addLayout(match_layout)
+
+    @staticmethod
+    def set_bookmark_image(label, subscribed):
+        """Sets the appropriate bookmark image based on subscription status."""
+        image_name = "subscribed.png" if subscribed == 'Yes' else "notSubscribed.png"
+        pixmap = qtg.QPixmap(os.path.join(os.path.dirname(__file__), 'images', image_name))
+        pixmap = pixmap.scaled(30, 30, qtc.Qt.KeepAspectRatio)
+        label.setPixmap(pixmap)
+        print(subscribed)
+
+    @staticmethod
+    def toggle_bookmark(label, match):
+        new_status = 'No' if match.get('subscribed') == 'Yes' else 'Yes'
+        match['subscribed'] = new_status  # Update the match's subscription status
+        Queries.toggle_match_as_subscribed(match['match_id'],new_status)  # Call the database function
+        Matches.set_bookmark_image(label, new_status)  # Update the image
 
     @staticmethod
     def get_team_crest(team_id):
@@ -76,12 +99,10 @@ class Matches:
         crests_dir = os.path.join(os.path.dirname(__file__), 'crests')
         crest_path = os.path.join(crests_dir, f"{team_id}.png")
 
-        # Load the image if it exists, else show a placeholder
         if os.path.exists(crest_path):
             pixmap = qtg.QPixmap(crest_path).scaled(30, 30, qtc.Qt.KeepAspectRatio)
         else:
-            print(crest_path)
-            pixmap = qtg.QPixmap(30, 30)  # Create an empty pixmap as a placeholder
+            pixmap = qtg.QPixmap(30, 30)
             pixmap.fill(qtg.QColor("gray"))
 
         label = qtw.QLabel()
@@ -105,12 +126,19 @@ class Matches:
         window.show()
         app.exec_()
 
+
 # Sample data for testing
 if __name__ == "__main__":
     sample_matches = [
-        {"match_date": "2024-10-01", "round": "1", "home_team": "Team A", "home_score": 2, "away_team": "Team B", "away_score": 1},
-        {"match_date": "2024-10-02", "round": "2", "home_team": "Team C", "home_score": 0, "away_team": "Team D", "away_score": 3},
-        {"match_date": "2024-10-03", "round": "3", "home_team": "Team E", "home_score": None, "away_team": "Team F", "away_score": None},
+        {"match_id": 1, "match_date": "2024-10-01", "matchday": "1", "home_team": "Team A", 
+         "home_team_id": 1, "home_score": 2, "away_team": "Team B", "away_team_id": 2, 
+         "away_score": 1, "subscribed": 'No'},
+        {"match_id": 2, "match_date": "2024-10-02", "matchday": "2", "home_team": "Team C", 
+         "home_team_id": 3, "home_score": 0, "away_team": "Team D", "away_team_id": 4, 
+         "away_score": 3, "subscribed": 'Yes'},
+        {"match_id": 3, "match_date": "2024-10-03", "matchday": "3", "home_team": "Team E", 
+         "home_team_id": 5, "home_score": None, "away_team": "Team F", "away_team_id": 6, 
+         "away_score": None, "subscribed": 'No'},
     ]
 
     Matches.setup_match_display(sample_matches)
