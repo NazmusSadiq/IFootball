@@ -1,16 +1,20 @@
 import sys
+import json
+import os
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as qtg
 import PyQt5.QtCore as qtc
-from UILoader import UILoader  
-#import API_Call
-#  ami kaj kori vai
+from UILoader import UILoader 
+from Queries import Queries
+import API_Call
+from Matches import Matches
+
 class MainWindow(qtw.QWidget):
     def __init__(self):
         super().__init__()
-
+        
         self.setWindowTitle("IFootball")
-        self.setGeometry(400, 100, 900, 800)
+        self.setGeometry(400, 100, 600, 900)
         self.setLayout(qtw.QVBoxLayout())
 
         self.stack = qtw.QStackedWidget(self)
@@ -27,7 +31,9 @@ class MainWindow(qtw.QWidget):
         self.tab_bar_layout = qtw.QHBoxLayout()
         self.home_button = UILoader.create_bottom_tab(self, "Home", "Images/home_uc.png", "Images/home_c.png")
         self.match_button = UILoader.create_bottom_tab(self, "Match", "Images/whistle_uc.png", "Images/whistle_c.png")
-        self.favorite_button = UILoader.create_bottom_tab(self, "Favorite", "Images/abc.png", "Images/bcd.png")
+        fav_id = Queries.fav_team_id
+        crest_pixmap = Matches.get_team_crest(fav_id,1)
+        self.favorite_button = UILoader.create_bottom_tab(self, "Favorite", crest_pixmap, crest_pixmap)
         self.stats_button = UILoader.create_bottom_tab(self, "Stats", "Images/stats_uc.png", "Images/stats_c.png")
 
         # Add buttons to the tab bar layout
@@ -43,7 +49,7 @@ class MainWindow(qtw.QWidget):
         self.update_active_tab(self.home_button, 0)
 
         self.show()
-
+        
     # Switch between tabs and update the active tab
     def switch_tab(self, selected_button):
         if selected_button == self.home_button:

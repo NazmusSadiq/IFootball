@@ -140,12 +140,12 @@ class UILoader:
         # Add subtabs with match data from matches.py
         sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures()))  # Main for now
         sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_subscribed_matches()))  # Subscribed 
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2001,2,2)))  # UCL
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2021,2,2)))  # EPL
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2014,2,2)))  # La Liga
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2002,2,2)))  # Bundesliga
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2019,2,)))  # Serie A
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2015,2,2)))  # Ligue 1
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2001,2,4)))  # UCL
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2021,2,4)))  # EPL
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2014,2,4)))  # La Liga
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2002,2,4)))  # Bundesliga
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2019,2,4)))  # Serie A
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2015,2,4)))  # Ligue 1
 
         section_layout.addWidget(sub_stack)
 
@@ -317,8 +317,7 @@ class UILoader:
                         no_stat_label = qtw.QLabel(f"No stats available for {category.replace('_', ' ').title()}")
                         layout.addWidget(no_stat_label)
 
-            else:  # Team stats
-                # Ensure only team-related stats are handled here
+            else: 
                 if isinstance(stats, list):  # Team stats should be a list of dicts
                     team_rank = 1
                     for stat in stats:
@@ -385,13 +384,14 @@ class UILoader:
         for i, name in enumerate(buttons):
             btn = qtw.QPushButton(name)
             btn.setStyleSheet("QPushButton { text-align: center; }")
-            btn.clicked.connect(lambda _, i=i: sub_stack.setCurrentIndex(i))
+            btn.clicked.connect(lambda _, idx=i: (
+                sub_stack.setCurrentIndex(idx),
+                UILoader.update_sub_tab_buttons(sub_tab_bar_layout, idx, btn, sub_stack)
+            ))
             sub_tab_bar_layout.addWidget(btn)
 
-        # Insert the sub-tab buttons at the top of the layout
         main_layout.insertLayout(0, sub_tab_bar_layout)
 
-        # Set the default selection for the favorite tab (Fixture)
         UILoader.update_sub_tab_buttons(sub_tab_bar_layout, 0, sub_tab_bar_layout.itemAt(0).widget(), sub_stack)
 
         favorite_tab.setLayout(main_layout)

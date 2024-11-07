@@ -102,7 +102,7 @@ class Matches:
         Matches.set_bookmark_image(label, new_status)  # Update the image
 
     @staticmethod
-    def get_team_crest(team_id):
+    def get_team_crest(team_id,main = 0):
         """Returns a QLabel with the team crest image."""
         crests_dir = os.path.join(os.path.dirname(__file__), 'crests')
         crest_path = os.path.join(crests_dir, f"{team_id}.png")
@@ -112,7 +112,8 @@ class Matches:
         else:
             pixmap = qtg.QPixmap(30, 30)
             pixmap.fill(qtg.QColor("gray"))
-
+        if main == 1:
+            return pixmap
         label = qtw.QLabel()
         label.setPixmap(pixmap)
         return label
