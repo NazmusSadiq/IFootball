@@ -7,6 +7,7 @@ import PyQt5.QtCore as qtc
 from UILoader import UILoader 
 from Queries import Queries
 import API_Call
+import Scraper
 from Matches import Matches
 
 class MainWindow(qtw.QWidget):
