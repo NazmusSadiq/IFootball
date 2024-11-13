@@ -60,10 +60,6 @@
         "link": "https://www.espn.in/football/story/_/id/42322336/ruben-amorim-im-not-naive-man-united-job-difficult"
     },
     {
-        "title": "Up is down in the Premier League as Man City struggle and Man United look good",
-        "link": "https://www.espn.in/football/story/_/id/42311531/european-soccer-weekend-review-premier-league-laliga-bundesliga-highlights-analysis"
-    },
-    {
         "title": "LaLiga star Mayoral 'in shock' after house fire",
         "link": "https://www.espn.in/football/story/_/id/42343997/getafe-borja-mayoral-shock-fire-family-home"
     },
@@ -82,6 +78,10 @@
     {
         "title": "Barça held scoreless in 2nd LaLiga loss of season",
         "link": "https://www.espn.in/football/report/_/gameId/704786"
+    },
+    {
+        "title": "Up is down in the Premier League as Man City struggle and Man United look good",
+        "link": "https://www.espn.in/football/story/_/id/42311531/european-soccer-weekend-review-premier-league-laliga-bundesliga-highlights-analysis"
     },
     {
         "title": "Girona's Herrera heads winner in narrow victory at Getafe",
@@ -106,10 +106,6 @@
     {
         "title": "Viní Jr. nets hat trick as Madrid thrash Osasuna",
         "link": "https://www.espn.in/football/report/_/gameId/704785"
-    },
-    {
-        "title": "Barça sign Nike deal, hope to ease financial woes",
-        "link": "https://www.espn.in/football/story/_/id/42285801/barcelona-confirm-nike-deal-hope-ease-financial-woes"
     },
     {
         "title": "Calhanoglu misses penalty as Inter, Napoli draw",
@@ -362,9 +358,5 @@
     {
         "title": "Arteta slams penalty calls in Arsenal loss to Inter",
         "link": "https://www.espn.in/football/story/_/id/42235587/arsenal-mikel-arteta-penalty-calls-inter-milan-champions-league"
-    },
-    {
-        "title": "Lookman, Zaniolo fire Atalanta to win over Stuttgart",
-        "link": "https://www.espn.in/football/report/_/gameId/720391"
     }
 ]

@@ -363,7 +363,8 @@ class UILoader:
         # Create the Fixture and Stats layouts
         fixture_layout = Favorite.create_fixture_layout(favorite_team, favorite_team_id, last_matches, next_matches)
         stats_layout = Favorite.create_stats_layout(favorite_team, favorite_team_id)
-
+        news_layout = Favorite.create_news_layout(favorite_team)
+        
         # Create the Fixture and Stats tabs
         fixture_tab = qtw.QWidget()
         fixture_tab.setLayout(fixture_layout)
@@ -371,16 +372,20 @@ class UILoader:
         stats_tab = qtw.QWidget()
         stats_tab.setLayout(stats_layout)
 
+        news_tab = qtw.QWidget()
+        news_tab.setLayout(news_layout)
+    
         # Add the fixture and stats tabs to the stacked widget
-        sub_stack.addWidget(fixture_tab)  # Fixture tab
-        sub_stack.addWidget(stats_tab)    # Stats tab
+        sub_stack.addWidget(fixture_tab)  
+        sub_stack.addWidget(stats_tab) 
+        sub_stack.addWidget(news_tab) 
 
         section_layout.addWidget(sub_stack)
         main_layout.addWidget(section_widget)
 
         # Subtab buttons
         sub_tab_bar_layout = qtw.QHBoxLayout()
-        buttons = ["Fixture", "Stats"]
+        buttons = ["Fixture", "Stats","News"]
         for i, name in enumerate(buttons):
             btn = qtw.QPushButton(name)
             btn.setStyleSheet("QPushButton { text-align: center; }")

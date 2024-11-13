@@ -4,6 +4,7 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as qtg
 import PyQt5.QtCore as qtc
 from Queries import Queries
+from News import News
 
 FAVORITE_TEAM_FILE = "favorite_team.json"
 
@@ -56,7 +57,7 @@ class Favorite:
 
     @staticmethod
     def prompt_set_favorite_team(main_window):
-        dialog = qtw.QDialog(main_window)  # Set main_window as the parent to center the dialog
+        dialog = qtw.QDialog(main_window) 
         dialog.setWindowTitle("Set Favorite Team")
     
         # Remove the "?" sign by adjusting the window flags
@@ -67,13 +68,11 @@ class Favorite:
         label = qtw.QLabel("Please start typing your favorite team:")
         dialog.layout().addWidget(label)
 
-        # Fetch teams from the database
-        teams = Queries.fetch_teams_from_database()  # Function to retrieve all team names from the DB
+        teams = Queries.fetch_teams_from_database()  
     
-        # Create an input field with auto-completion for team names
         team_input = qtw.QLineEdit()
-        completer = qtw.QCompleter(teams)  # Create a completer with the team list
-        completer.setCaseSensitivity(qtc.Qt.CaseInsensitive)  # Make auto-completion case insensitive
+        completer = qtw.QCompleter(teams)  
+        completer.setCaseSensitivity(qtc.Qt.CaseInsensitive) 
         team_input.setCompleter(completer)
         dialog.layout().addWidget(team_input)
 
@@ -185,8 +184,67 @@ class Favorite:
             stats_layout.addWidget(qtw.QLabel("No favorite team set for stats."))
 
         stats_layout.addStretch()
+        News.get_fav_team_news_headlines(favorite_team)
         return stats_layout
     
+
+    @staticmethod
+    def create_news_layout(favorite_team):
+        
+        news_layout = qtw.QVBoxLayout()
+
+        stacked_widget = qtw.QStackedWidget()
+
+        news_scroll_area = qtw.QScrollArea()
+        news_scroll_area.setWidgetResizable(True)
+
+        news_content_widget = qtw.QWidget()
+        news_content_layout = qtw.QVBoxLayout(news_content_widget)
+
+        news_data = News.get_fav_team_news_headlines(favorite_team)
+
+        for news_item in news_data:
+            news_headline = news_item.get("title", "No Title")
+            news_link = news_item.get("link", "#")
+
+            headline_label = qtw.QLabel(f"<a href='#'>{news_headline}</a>")
+            headline_label.setTextFormat(qtc.Qt.RichText)
+            headline_label.setTextInteractionFlags(qtc.Qt.TextBrowserInteraction)
+            headline_label.setOpenExternalLinks(False)  
+
+            headline_label.linkActivated.connect(lambda _, link=news_link: display_article_content(link))
+
+            news_content_layout.addWidget(headline_label)
+
+        news_content_widget.setLayout(news_content_layout)
+        news_scroll_area.setWidget(news_content_widget)
+
+        article_widget = qtw.QWidget()
+        article_layout = qtw.QVBoxLayout(article_widget)
+
+        back_button = qtw.QPushButton("Back to News")
+        back_button.clicked.connect(lambda: stacked_widget.setCurrentIndex(0))
+        article_layout.addWidget(back_button)
+
+        article_content_label = qtw.QTextBrowser()
+        article_layout.addWidget(article_content_label)
+
+        stacked_widget.addWidget(news_scroll_area)  
+        stacked_widget.addWidget(article_widget)    
+
+        def display_article_content(link):
+            paragraphs = News.scrape_news_paragraphs(link)
+            if paragraphs:
+                article_content_label.setText(paragraphs)
+            else:
+                article_content_label.setText("No content available.")
+    
+            stacked_widget.setCurrentIndex(1)
+
+        news_layout.addWidget(stacked_widget)
+
+        return news_layout
+
 
     @staticmethod
     def create_team_row(layout, stat):
@@ -234,5 +292,4 @@ class Favorite:
             no_stat_label = qtw.QLabel("No stats available")
             layout.addWidget(no_stat_label)
 
-        #layout.addStretch()
         
