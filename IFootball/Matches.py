@@ -28,7 +28,7 @@ class Matches:
     @staticmethod
     def create_match_row(layout, match):
         match_layout = qtw.QGridLayout()
-
+        # print(match)
         # Date Label
         date_label = qtw.QLabel(f"{match['match_date']}")
         date_label.setMinimumWidth(Matches.column_widths["Date"])

@@ -119,7 +119,7 @@ class Favorite:
                 for match in last_matches:
                     fixture_layout.addWidget(qtw.QLabel(
                         f"{match['competition']} R{match['matchday']}: "
-                        f"{match['team1']} {match['score1']} - {match['score2']} {match['team2']} on {match['date']}"))
+                        f"{match['home_team']} {match['home_score']} - {match['away_score']} {match['away_team']} on {match['match_date']}"))
             else:
                 fixture_layout.addWidget(qtw.QLabel("No recent matches available"))
 

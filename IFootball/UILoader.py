@@ -112,14 +112,73 @@ class UILoader:
     
 
 
-    # Create Home tab content
+    # Create Home tab content with favorite team matches and news
     @staticmethod
     def create_home_tab():
+        # Initialize the home tab widget and main layout
         home_tab = qtw.QWidget()
-        layout = qtw.QVBoxLayout()
-        home_tab.setLayout(layout)
-        return home_tab
+        main_layout = qtw.QVBoxLayout()
+        
+        # Create a scroll area to make the home tab scrollable
+        scroll_area = qtw.QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setVerticalScrollBarPolicy(qtc.Qt.ScrollBarAsNeeded)
+        scroll_area.setHorizontalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOff)
+        
+        # Container widget to hold the favorite matches and news sections
+        content_widget = qtw.QWidget()
+        content_layout = qtw.QVBoxLayout(content_widget)
+        
+        # Section 1: Favorite Team Matches
+        favorite_team, favorite_team_id, last_matches, next_matches = Favorite.load_favorite_tab_content()
+        
+        # Display recent and upcoming matches using create_sub_tab_match
+        favorite_matches_widget = UILoader.create_sub_tab_match(last_matches + next_matches)
+        
+        # Set up the favorite section widget and layout
+        favorite_section_widget = qtw.QWidget()
+        favorite_section_layout = qtw.QVBoxLayout(favorite_section_widget)
+        favorite_section_label = qtw.QLabel("<b>Favorite Team Matches</b>")
+        favorite_section_label.setAlignment(qtc.Qt.AlignCenter)
+        
+        # Add the label and the matches widget to the layout
+        favorite_section_layout.addWidget(favorite_section_label)
+        favorite_section_layout.addWidget(favorite_matches_widget)  # Use the widget directly
+        favorite_section_layout.addStretch()
+        
+        # Add the favorite section to the main content layout
+        content_layout.addWidget(favorite_section_widget)
+        
+        # Section 2: News
+        news_layout = Favorite.create_news_layout(favorite_team)
+        
+        news_section_widget = qtw.QWidget()
+        news_section_layout = qtw.QVBoxLayout(news_section_widget)
+        news_section_label = qtw.QLabel("<b>News</b>")
+        news_section_label.setAlignment(qtc.Qt.AlignCenter)
+        news_section_layout.addWidget(news_section_label)
+        news_section_layout.addLayout(news_layout)
+        news_section_layout.addStretch()
+        
+        # Add the news section to a separate scroll area
+        news_scroll_area = qtw.QScrollArea()
+        news_scroll_area.setWidgetResizable(True)
+        news_scroll_area.setVerticalScrollBarPolicy(qtc.Qt.ScrollBarAsNeeded)
+        news_scroll_area.setHorizontalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOff)
+        news_scroll_area.setWidget(news_section_widget)
+        
+        # Add the news scroll area to the main content layout
+        content_layout.addWidget(news_scroll_area)
+        
+        # Add the content to the main scroll area
+        scroll_area.setWidget(content_widget)
+        main_layout.addWidget(scroll_area)
+        
+        # Set the layout for the home tab
+        home_tab.setLayout(main_layout)
 
+        return home_tab
+    
     # Create Match tab content with subtabs
     @staticmethod
     def create_match_tab(main_window):

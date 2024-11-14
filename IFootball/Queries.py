@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="210041139",
+    password="4444",
     database="IFootball"
 )
 cursor = db.cursor()
@@ -66,11 +66,11 @@ class Queries:
         return [
             {
                 "match_id": row[0],
-                "team1": row[1],
-                "team2": row[2],
-                "score1": row[3] if row[3] is not None else "N/A",  
-                "score2": row[4] if row[4] is not None else "N/A",  
-                "date": row[5].strftime('%Y-%m-%d'),  
+                "home_team": row[1],
+                "away_team": row[2],
+                "home_score": row[3] if row[3] is not None else "N/A",  
+                "away_score": row[4] if row[4] is not None else "N/A",  
+                "match_date": row[5].strftime('%Y-%m-%d'),  
                 "competition": row[6],  
                 "matchday": row[7],
                 "home_team_id": row[8],
@@ -79,7 +79,50 @@ class Queries:
             }
             for row in matches
         ]
+    def get_next_matches(team_id, limit=10):
+        query = """
+        SELECT 
+            m.match_id, 
+            t1.short_name AS home_team, 
+            t2.short_name AS away_team, 
+            s.full_time_home, 
+            s.full_time_away, 
+            m.match_utc_date, 
+            c.competition_name,  
+            m.matchday,
+            m.home_team_id,
+            m.away_team_id,
+            m.subscribed            
+        FROM matches m
+        JOIN teams t1 ON m.home_team_id = t1.team_id
+        JOIN teams t2 ON m.away_team_id = t2.team_id
+        LEFT JOIN scores s ON m.match_id = s.match_id
+        JOIN competitions c ON m.competition_id = c.competition_id -- Join to get competition name
+        WHERE (m.home_team_id = %s OR m.away_team_id = %s) 
+          AND m.match_utc_date > NOW()
+        ORDER BY m.match_utc_date ASC
+        LIMIT %s
+        """
+        cursor.execute(query, (team_id, team_id, limit))
+        matches = cursor.fetchall()
 
+        return [
+            {
+                "match_id": row[0],
+                "home_team": row[1],
+                "away_team": row[2],
+                "home_score": row[3] if row[3] is not None else "N/A",  
+                "away_score": row[4] if row[4] is not None else "N/A",  
+                "match_date": row[5].strftime('%Y-%m-%d'),  
+                "competition": row[6],  
+                "matchday": row[7],
+                "home_team_id": row[8],
+                "away_team_id": row[9],
+                "subscribed": row[10]
+            }
+            for row in matches
+        ]
+    
     def get_team_stats_in_fav(team_id):
     # Query to get overall team stats by competition
         query = """
@@ -232,47 +275,6 @@ class Queries:
             result.append(competition_stat)
 
         return result
-
-
-    def get_next_matches(team_id, limit=10):
-        query = """
-        SELECT 
-            m.match_id, 
-            ht.short_name AS home_team, 
-            at.short_name AS away_team, 
-            m.match_utc_date, 
-            c.competition_name,   
-            m.matchday,
-            m.home_team_id,
-            m.away_team_id,
-            m.subscribed          
-        FROM matches m
-        JOIN teams ht ON m.home_team_id = ht.team_id
-        JOIN teams at ON m.away_team_id = at.team_id
-        JOIN competitions c ON m.competition_id = c.competition_id  -- Join to get competition name
-        WHERE (m.home_team_id = %s OR m.away_team_id = %s) 
-          AND m.match_utc_date > NOW()
-        ORDER BY m.match_utc_date ASC
-        LIMIT %s
-        """
-        cursor.execute(query, (team_id, team_id, limit))
-        matches = cursor.fetchall()
-
-        # Returning the match details
-        return [
-            {
-                "match_id": row[0],
-                "team1": row[1],  # home team
-                "team2": row[2],  # away team
-                "date": row[3].strftime('%Y-%m-%d'),  # match date in 'YYYY-MM-DD' format
-                "competition": row[4],  # Competition name
-                "matchday": row[5],  # Matchday
-                "home_team_id": row[6],
-                "away_team_id": row[7],
-                "subscribed": row[8]
-            }
-            for row in matches
-        ]
     
     def get_team_stats(team_id):
         # Query to get overall team stats by competition
