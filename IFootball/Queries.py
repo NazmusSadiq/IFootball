@@ -57,7 +57,7 @@ class Queries:
         JOIN competitions c ON m.competition_id = c.competition_id -- Join to get competition name
         WHERE (m.home_team_id = %s OR m.away_team_id = %s) 
           AND m.match_utc_date <= NOW()
-        ORDER BY m.match_utc_date ASC
+        ORDER BY m.match_utc_date DESC
         LIMIT %s
         """
         cursor.execute(query, (team_id, team_id, limit))
@@ -68,8 +68,8 @@ class Queries:
                 "match_id": row[0],
                 "home_team": row[1],
                 "away_team": row[2],
-                "home_score": row[3] if row[3] is not None else "N/A",  
-                "away_score": row[4] if row[4] is not None else "N/A",  
+                "home_score": row[3],  
+                "away_score": row[4],  
                 "match_date": row[5].strftime('%Y-%m-%d'),  
                 "competition": row[6],  
                 "matchday": row[7],
@@ -111,8 +111,8 @@ class Queries:
                 "match_id": row[0],
                 "home_team": row[1],
                 "away_team": row[2],
-                "home_score": row[3] if row[3] is not None else "N/A",  
-                "away_score": row[4] if row[4] is not None else "N/A",  
+                "home_score": row[3],  
+                "away_score": row[4],  
                 "match_date": row[5].strftime('%Y-%m-%d'),  
                 "competition": row[6],  
                 "matchday": row[7],
@@ -685,6 +685,99 @@ class Queries:
             result.append(fixture_data)
 
         return result
+
+# Function to get the immediate next match
+    def get_immediate_next_match(comp_id):
+        query = """
+            SELECT 
+            m.match_id, 
+            t1.short_name AS home_team, 
+            t2.short_name AS away_team, 
+            s.full_time_home, 
+            s.full_time_away, 
+            m.match_utc_date, 
+            c.competition_name,  
+            m.matchday,
+            m.home_team_id,
+            m.away_team_id,
+            m.subscribed            
+        FROM matches m
+        JOIN teams t1 ON m.home_team_id = t1.team_id
+        JOIN teams t2 ON m.away_team_id = t2.team_id
+        LEFT JOIN scores s ON m.match_id = s.match_id
+        JOIN competitions c ON m.competition_id = c.competition_id
+            WHERE m.match_utc_date > %s AND c.competition_id = %s
+            ORDER BY m.match_utc_date DESC
+            LIMIT 1;
+        """
+        cursor.execute(query, (datetime.now(),comp_id))
+        fixture = cursor.fetchone()
+        if fixture:
+            fixture_data = {
+                "match_id": fixture[0],
+                "home_team": fixture[1],
+                "away_team": fixture[2],
+                "home_score": fixture[3] if fixture[3] is not None else "N/A",  
+                "away_score": fixture[4] if fixture[4] is not None else "N/A",  
+                "match_date": fixture[5].strftime('%Y-%m-%d'),  
+                "competition": fixture[6],  
+                "matchday": fixture[7],
+                "home_team_id": fixture[8],
+                "away_team_id": fixture[9],
+                "subscribed": fixture[10]
+            }
+            print("Next Match:", fixture_data)
+            return fixture_data
+        else:
+            print("No next match found.")
+            return None
+
+# Function to get the immediate previous match
+    def get_immediate_previous_match(comp_id):
+        print(comp_id)
+        query = """
+             SELECT 
+            m.match_id, 
+            t1.short_name AS home_team, 
+            t2.short_name AS away_team, 
+            s.full_time_home, 
+            s.full_time_away, 
+            m.match_utc_date, 
+            c.competition_name,
+            m.matchday,
+            m.home_team_id,
+            m.away_team_id,
+            m.subscribed            
+        FROM matches m
+        JOIN teams t1 ON m.home_team_id = t1.team_id
+        JOIN teams t2 ON m.away_team_id = t2.team_id
+        LEFT JOIN scores s ON m.match_id = s.match_id
+        JOIN competitions c ON m.competition_id = c.competition_id
+            WHERE m.match_utc_date < NOW() and m.competition_id = %s
+            ORDER BY m.match_utc_date DESC
+            LIMIT 1;
+        """
+        cursor.execute(query, (comp_id,))
+        fixture = cursor.fetchone()
+        if fixture:
+            fixture_data = {
+                "match_id": fixture[0],
+                "home_team": fixture[1],
+                "away_team": fixture[2],
+                "home_score": fixture[3] ,  
+                "away_score": fixture[4] ,  
+                "match_date": fixture[5].strftime('%Y-%m-%d'),  
+                "competition": fixture[6],  
+                "matchday": fixture[7],
+                "home_team_id": fixture[8],
+                "away_team_id": fixture[9],
+                "subscribed": fixture[10]
+            }
+            return fixture_data
+        else:
+            print("No Previous match found.")
+            return None
+
 
     def set_fav_team_as_subscribed(favorite_team_id):
         Queries.fav_team_id = favorite_team_id

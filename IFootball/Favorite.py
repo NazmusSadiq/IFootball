@@ -78,7 +78,7 @@ class Favorite:
 
         # Ok button
         ok_button = qtw.QPushButton("OK")
-        ok_button.clicked.connect(lambda: Favorite.set_favorite_team(team_input.text()) or dialog.accept())
+        ok_button.clicked.connect(lambda: Favorite.set_favorite_team(team_input.text()) and dialog.accept())
         dialog.layout().addWidget(ok_button)
 
         dialog.exec_()
@@ -106,7 +106,7 @@ class Favorite:
 
     @staticmethod
     def create_fixture_layout(favorite_team, favorite_team_id, last_matches, next_matches):
-
+        from UILoader import UILoader
         fixture_layout = qtw.QVBoxLayout()
 
         # Add favorite team information
@@ -116,20 +116,16 @@ class Favorite:
             # Display last 2 matches
             fixture_layout.addWidget(qtw.QLabel("<b>Previous Matches:</b>"))
             if last_matches:
-                for match in last_matches:
-                    fixture_layout.addWidget(qtw.QLabel(
-                        f"{match['competition']} R{match['matchday']}: "
-                        f"{match['home_team']} {match['home_score']} - {match['away_score']} {match['away_team']} on {match['match_date']}"))
+                    last_widget = UILoader.create_sub_tab_match(last_matches)
+                    fixture_layout.addWidget(last_widget)
             else:
                 fixture_layout.addWidget(qtw.QLabel("No recent matches available"))
 
             # Display next 2 matches
             fixture_layout.addWidget(qtw.QLabel("<b>Next Matches:</b>"))
             if next_matches:
-                for match in next_matches:
-                    fixture_layout.addWidget(qtw.QLabel(
-                        f"{match['competition']} R{match['matchday']}: "
-                        f"{match['team1']} vs {match['team2']} on {match['date']}"))
+                next_widget = UILoader.create_sub_tab_match(next_matches)
+                fixture_layout.addWidget(next_widget)
             else:
                 fixture_layout.addWidget(qtw.QLabel("No upcoming matches available"))
         else:

@@ -55,7 +55,7 @@ class UILoader:
                         stat_label = qtw.QLabel("Invalid stat format")
                         layout.addWidget(stat_label)
             else:
-                print(f"Unexpected stat structure for team stats: {match}")
+                print(f"Unexpected stat structure for team stats")
         else:
             no_match_label = qtw.QLabel("No matches available")
             layout.addWidget(no_match_label)
@@ -64,121 +64,121 @@ class UILoader:
         widget.setLayout(layout)
         return widget
 
-    # @staticmethod
-    # def create_main_match_tab():
-    #     match_tab = qtw.QWidget()
-    #     main_layout = qtw.QVBoxLayout()
-    
-    #     UILoader.clear_section(main_layout)  # Clear previous content if any
-    
-    #     # Widget to hold all competitions in a vertical layout
-    #     competitions_widget = qtw.QWidget()
-    #     competitions_layout = qtw.QVBoxLayout(competitions_widget)
-    
-    #     # Define competition IDs and their names
-    #     competitions = {
-    #         2014: "La Liga",
-    #         2001: "UCL",
-    #         2021: "EPL",
-    #         2002: "Bundesliga",
-    #         2019: "Serie A",
-    #         2015: "Ligue 1"
-    #     }
-    
-    #     # Loop through competitions and add them to the layout
-    #     for comp_id, comp_name in competitions.items():
-    #         # Section header for the competition
-    #         header = qtw.QLabel(f"<b>{comp_name}</b>")
-    #         header.setAlignment(qtc.Qt.AlignCenter)
-    #         header.setStyleSheet("font-size: 18px; margin: 10px 0;")
-    
-    #         competitions_layout.addWidget(header)
-    
-    #         # Fetch and display matches for the competition
-    #         matches = Queries.get_league_matches(comp_id)
-    #         competitions_layout.addWidget(UILoader.create_sub_tab_match(matches))
-    
-    #         # Add spacing between competitions
-    #         competitions_layout.addSpacing(20)
-    
-    #     # Add a spacer to ensure proper alignment
-    #     competitions_layout.addStretch()
-        
-    #     main_layout.addWidget(competitions_widget)
-    
-    #     match_tab.setLayout(main_layout)
-    
-    #     return match_tab
-    
-
-
     # Create Home tab content with favorite team matches and news
-    @staticmethod
-    def create_home_tab():
-        # Initialize the home tab widget and main layout
-        home_tab = qtw.QWidget()
-        main_layout = qtw.QVBoxLayout()
-        
-        # Create a scroll area to make the home tab scrollable
-        scroll_area = qtw.QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setVerticalScrollBarPolicy(qtc.Qt.ScrollBarAsNeeded)
-        scroll_area.setHorizontalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOff)
-        
-        # Container widget to hold the favorite matches and news sections
-        content_widget = qtw.QWidget()
-        content_layout = qtw.QVBoxLayout(content_widget)
-        
-        # Section 1: Favorite Team Matches
+    def create_recent_matches_section():
+
+        recent_matches_widget = qtw.QWidget()
+        recent_matches_layout = qtw.QVBoxLayout(recent_matches_widget)
+
+
+        fav_matches_label = qtw.QLabel("<b>Favourite Team<b>")
+        fav_matches_label.setAlignment(qtc.Qt.AlignCenter)
+        recent_matches_layout.addWidget(fav_matches_label)
+
         favorite_team, favorite_team_id, last_matches, next_matches = Favorite.load_favorite_tab_content()
+        # print(last_matches[2][0])
+        if(len(last_matches)>3):
+            last = last_matches[0:3]
+        else:
+            last = last_matches
         
-        # Display recent and upcoming matches using create_sub_tab_match
-        favorite_matches_widget = UILoader.create_sub_tab_match(last_matches + next_matches)
-        
-        # Set up the favorite section widget and layout
-        favorite_section_widget = qtw.QWidget()
-        favorite_section_layout = qtw.QVBoxLayout(favorite_section_widget)
-        favorite_section_label = qtw.QLabel("<b>Favorite Team Matches</b>")
-        favorite_section_label.setAlignment(qtc.Qt.AlignCenter)
-        
-        # Add the label and the matches widget to the layout
-        favorite_section_layout.addWidget(favorite_section_label)
-        favorite_section_layout.addWidget(favorite_matches_widget)  # Use the widget directly
-        favorite_section_layout.addStretch()
-        
-        # Add the favorite section to the main content layout
-        content_layout.addWidget(favorite_section_widget)
-        
-        # Section 2: News
+        if(len(next_matches)>3):
+            next = next_matches[1:3]
+        else:
+            next = next_matches
+        fav_matches_widget = UILoader.create_sub_tab_match(last+next)
+        recent_matches_layout.addWidget(fav_matches_widget)
+
+        # Matches.create_match_row(recent_matches_layout, last_matches[2][1])
+
+        # recent_matches_layout.addWidget(recent_matches_widget)
+
+        competition_ids = [2001, 2021, 2014, 2002, 2019]
+        competition_names = {
+            2001: "Premier League",
+            2021: "Champions League",
+            2014: "La Liga",
+            2002: "Bundesliga",
+            2019: "Serie A"
+        }
+        for comp_id in competition_ids:
+            match = Queries.get_immediate_previous_match(comp_id)
+            # print(match)
+            if match:
+                recent_matches_label = qtw.QLabel("<b>"+competition_names[comp_id]+"<b>")
+                recent_matches_label.setAlignment(qtc.Qt.AlignCenter)
+                recent_matches_layout.addWidget(recent_matches_label)
+
+                Matches.create_match_row(recent_matches_layout, match)
+                recent_matches_layout.addWidget(recent_matches_widget)
+
+        recent_matches_layout.addStretch()
+
+        # Set up the section widget and layout
+        return recent_matches_widget
+
+
+    @staticmethod
+    def create_news_section():
+        # Load favorite team to fetch news
+        favorite_team, *_ = Favorite.load_favorite_tab_content()
+
+        # Create news layout
         news_layout = Favorite.create_news_layout(favorite_team)
-        
+
+        # Create news section widget and layout
         news_section_widget = qtw.QWidget()
         news_section_layout = qtw.QVBoxLayout(news_section_widget)
         news_section_label = qtw.QLabel("<b>News</b>")
         news_section_label.setAlignment(qtc.Qt.AlignCenter)
+
+        # Add the label and news layout to the section
         news_section_layout.addWidget(news_section_label)
         news_section_layout.addLayout(news_layout)
         news_section_layout.addStretch()
-        
-        # Add the news section to a separate scroll area
+
+        # Wrap the news section in a scroll area
         news_scroll_area = qtw.QScrollArea()
         news_scroll_area.setWidgetResizable(True)
         news_scroll_area.setVerticalScrollBarPolicy(qtc.Qt.ScrollBarAsNeeded)
         news_scroll_area.setHorizontalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOff)
         news_scroll_area.setWidget(news_section_widget)
-        
-        # Add the news scroll area to the main content layout
-        content_layout.addWidget(news_scroll_area)
-        
-        # Add the content to the main scroll area
-        scroll_area.setWidget(content_widget)
-        main_layout.addWidget(scroll_area)
-        
+
+        return news_scroll_area
+
+
+    def create_home_tab():
+        # Initialize the home tab widget and main layout
+        home_tab = qtw.QWidget()
+        main_layout = qtw.QVBoxLayout()
+    
+        # Create a QSplitter to divide the sections
+        splitter = qtw.QSplitter(qtc.Qt.Vertical)
+    
+        # Section 1: Recent Matches (40%)
+        recent_matches_widget = UILoader.create_recent_matches_section()
+        recent_matches_scroll_area = qtw.QScrollArea()
+        recent_matches_scroll_area.setWidgetResizable(True)
+        recent_matches_scroll_area.setVerticalScrollBarPolicy(qtc.Qt.ScrollBarAsNeeded)
+        recent_matches_scroll_area.setHorizontalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOff)
+        recent_matches_scroll_area.setWidget(recent_matches_widget)
+    
+        # Section 2: News (60%)
+        news_section_widget = UILoader.create_news_section()
+    
+        # Add both sections to the splitter
+        splitter.addWidget(recent_matches_scroll_area)
+        splitter.addWidget(news_section_widget)
+    
+        # Set the initial sizes for the splitter sections
+        splitter.setSizes([40, 60])  # Proportional sizing: 40% and 60%
+    
+        # Add the splitter to the main layout
+        main_layout.addWidget(splitter)
+    
         # Set the layout for the home tab
         home_tab.setLayout(main_layout)
-
         return home_tab
-    
     # Create Match tab content with subtabs
     @staticmethod
     def create_match_tab(main_window):
