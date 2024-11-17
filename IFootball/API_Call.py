@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="4444",
+    password="210041139",
     database="IFootball"
 )
 cursor = db.cursor()
@@ -183,5 +183,4 @@ db.commit()
 cursor.close()
 db.close()
 
-# Print total number of matches
 print(f"Total matches found: {len(matches)}")

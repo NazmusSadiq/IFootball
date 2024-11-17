@@ -38,31 +38,30 @@ class Favorite:
                 short_name = data.get("short_name", None)
                 team_id = data.get("team_id", None)
                 print(f"Favorite team found:  (ID: {team_id})")
-                Queries.set_fav_team_as_subscribed(team_id)
+                Queries.set_fav_team_matches_as_subscribed(team_id)
                 return short_name, team_id  
         return None, None
 
     @staticmethod
-    def set_favorite_team(short_name):
+    def set_favorite_team(full_name,mainwindow):
         # Get team ID from the database
-        team_id = Queries.get_team_id_by_name(short_name)
-    
+        team_id = Queries.get_team_id_by_name(full_name)
+        from UILoader import UILoader
         if team_id:
             with open(FAVORITE_TEAM_FILE, 'w') as f:
-                json.dump({"short_name": short_name, "team_id": team_id}, f)
-                print(f"Favorite team set: {short_name} (ID: {team_id})")
-                Queries.set_fav_team_as_subscribed(team_id)
+                json.dump({"short_name": full_name, "team_id": team_id}, f)
+                print(f"Favorite team set: {full_name} (ID: {team_id})")
+                Queries.set_fav_team_matches_as_subscribed(team_id)
         else:
-            print(f"Team {short_name} not found in the database.")
+            print(f"Team {full_name} not found in the database.")
 
     @staticmethod
     def prompt_set_favorite_team(main_window):
         dialog = qtw.QDialog(main_window) 
         dialog.setWindowTitle("Set Favorite Team")
     
-        # Remove the "?" sign by adjusting the window flags
         dialog.setWindowFlags(dialog.windowFlags() & ~qtc.Qt.WindowContextHelpButtonHint)
-        dialog.setGeometry(300, 100, 600, 900)
+        dialog.setGeometry(main_window.x(), main_window.y()+15, 685, 915)
         dialog.setLayout(qtw.QVBoxLayout())
 
         label = qtw.QLabel("Please start typing your favorite team:")
@@ -73,12 +72,14 @@ class Favorite:
         team_input = qtw.QLineEdit()
         completer = qtw.QCompleter(teams)  
         completer.setCaseSensitivity(qtc.Qt.CaseInsensitive) 
+        completer.setFilterMode(qtc.Qt.MatchContains)  
+        completer.setCompletionMode(qtw.QCompleter.UnfilteredPopupCompletion)
         team_input.setCompleter(completer)
         dialog.layout().addWidget(team_input)
 
         # Ok button
         ok_button = qtw.QPushButton("OK")
-        ok_button.clicked.connect(lambda: Favorite.set_favorite_team(team_input.text()) and dialog.accept())
+        ok_button.clicked.connect(lambda: Favorite.set_favorite_team(team_input.text(),main_window) or dialog.accept())
         dialog.layout().addWidget(ok_button)
 
         dialog.exec_()
@@ -106,7 +107,7 @@ class Favorite:
 
     @staticmethod
     def create_fixture_layout(favorite_team, favorite_team_id, last_matches, next_matches):
-        from UILoader import UILoader
+
         fixture_layout = qtw.QVBoxLayout()
 
         # Add favorite team information
@@ -116,16 +117,20 @@ class Favorite:
             # Display last 2 matches
             fixture_layout.addWidget(qtw.QLabel("<b>Previous Matches:</b>"))
             if last_matches:
-                    last_widget = UILoader.create_sub_tab_match(last_matches)
-                    fixture_layout.addWidget(last_widget)
+                for match in last_matches:
+                    fixture_layout.addWidget(qtw.QLabel(
+                        f"{match['competition']} R{match['matchday']}: "
+                        f"{match['team1']} {match['score1']} - {match['score2']} {match['team2']} on {match['date']}"))
             else:
                 fixture_layout.addWidget(qtw.QLabel("No recent matches available"))
 
             # Display next 2 matches
             fixture_layout.addWidget(qtw.QLabel("<b>Next Matches:</b>"))
             if next_matches:
-                next_widget = UILoader.create_sub_tab_match(next_matches)
-                fixture_layout.addWidget(next_widget)
+                for match in next_matches:
+                    fixture_layout.addWidget(qtw.QLabel(
+                        f"{match['competition']} R{match['matchday']}: "
+                        f"{match['team1']} vs {match['team2']} on {match['date']}"))
             else:
                 fixture_layout.addWidget(qtw.QLabel("No upcoming matches available"))
         else:
@@ -180,12 +185,11 @@ class Favorite:
             stats_layout.addWidget(qtw.QLabel("No favorite team set for stats."))
 
         stats_layout.addStretch()
-        News.get_fav_team_news_headlines(favorite_team)
         return stats_layout
     
 
     @staticmethod
-    def create_news_layout(favorite_team):
+    def create_news_layout(favorite_team_id):
         
         news_layout = qtw.QVBoxLayout()
 
@@ -196,9 +200,11 @@ class Favorite:
 
         news_content_widget = qtw.QWidget()
         news_content_layout = qtw.QVBoxLayout(news_content_widget)
-
-        news_data = News.get_fav_team_news_headlines(favorite_team)
-
+        news_data = News.get_fav_team_news_headlines(favorite_team_id)
+        
+        if(favorite_team_id==-1):
+            news_data = News.show_news_in_home()
+            
         for news_item in news_data:
             news_headline = news_item.get("title", "No Title")
             news_link = news_item.get("link", "#")
@@ -207,7 +213,9 @@ class Favorite:
             headline_label.setTextFormat(qtc.Qt.RichText)
             headline_label.setTextInteractionFlags(qtc.Qt.TextBrowserInteraction)
             headline_label.setOpenExternalLinks(False)  
-
+            font = headline_label.font()
+            font.setPointSize(12)  
+            headline_label.setFont(font)
             headline_label.linkActivated.connect(lambda _, link=news_link: display_article_content(link))
 
             news_content_layout.addWidget(headline_label)
@@ -232,6 +240,9 @@ class Favorite:
             paragraphs = News.scrape_news_paragraphs(link)
             if paragraphs:
                 article_content_label.setText(paragraphs)
+                font = article_content_label.font()
+                font.setPointSize(10)  
+                article_content_label.setFont(font)
             else:
                 article_content_label.setText("No content available.")
     

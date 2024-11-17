@@ -1,19 +1,32 @@
 import json
 import requests
+from Queries import Queries
 from bs4 import BeautifulSoup
 
 class News:
     
     @staticmethod
-    def show_news_in_home(news):
-        article_content = News.scrape_news_paragraphs(news["link"])
+    def show_news_in_home():
 
-        print(f"\n{article_content}\n")
+        with open('espn_news_headlines.json', 'r', encoding="utf-8") as file:
+            news_data = json.load(file)
+        displayed_news = set()
+        matched_news = []
+        
+        for news in news_data:
+            if news["title"] not in displayed_news:
+                matched_news.append({"title": news["title"], "link": news["link"]})
+                displayed_news.add(news["title"])
+        
+        return matched_news
             
 
     @staticmethod
-    def get_fav_team_news_headlines(team_name):
-        with open('espn_news_headlines.json', 'r') as file:
+    def get_fav_team_news_headlines(team_id):
+        team_name = Queries.get_team_full_name_by_id(team_id)
+        if(team_name==None):
+            return
+        with open('espn_news_headlines.json', 'r', encoding="utf-8") as file:
             news_data = json.load(file)
 
         keywords = team_name.lower().split()

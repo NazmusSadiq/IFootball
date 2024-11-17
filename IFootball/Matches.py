@@ -28,7 +28,7 @@ class Matches:
     @staticmethod
     def create_match_row(layout, match):
         match_layout = qtw.QGridLayout()
-        # print(match)
+
         # Date Label
         date_label = qtw.QLabel(f"{match['match_date']}")
         date_label.setMinimumWidth(Matches.column_widths["Date"])
@@ -71,7 +71,6 @@ class Matches:
         bookmark_label = qtw.QLabel()
         Matches.set_bookmark_image(bookmark_label, match.get('subscribed'))
         bookmark_label.mousePressEvent = lambda event: Matches.toggle_bookmark(bookmark_label, match)
-        # print(match.get('subscribed','vgdcgvc'))
         match_layout.addWidget(bookmark_label, 0, 5, alignment=qtc.Qt.AlignCenter)
 
         # Add the match layout to the main layout
@@ -134,20 +133,3 @@ class Matches:
         window.setLayout(main_layout)
         window.show()
         app.exec_()
-
-
-# Sample data for testing
-if __name__ == "__main__":
-    sample_matches = [
-        {"match_id": 1, "match_date": "2024-10-01", "matchday": "1", "home_team": "Team A", 
-         "home_team_id": 1, "home_score": 2, "away_team": "Team B", "away_team_id": 2, 
-         "away_score": 1, "subscribed": 'No'},
-        {"match_id": 2, "match_date": "2024-10-02", "matchday": "2", "home_team": "Team C", 
-         "home_team_id": 3, "home_score": 0, "away_team": "Team D", "away_team_id": 4, 
-         "away_score": 3, "subscribed": 'Yes'},
-        {"match_id": 3, "match_date": "2024-10-03", "matchday": "3", "home_team": "Team E", 
-         "home_team_id": 5, "home_score": None, "away_team": "Team F", "away_team_id": 6, 
-         "away_score": None, "subscribed": 'No'},
-    ]
-
-    Matches.setup_match_display(sample_matches)
