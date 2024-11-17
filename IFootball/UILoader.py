@@ -63,7 +63,7 @@ class UILoader:
                         stat_label = qtw.QLabel("Invalid stat format")
                         layout.addWidget(stat_label)
             else:
-                print(f"Unexpected stat structure for team stats: {match}")
+                print(f"Unexpected stat structure for team stats:")
         else:
             no_match_label = qtw.QLabel("No matches available")
             layout.addWidget(no_match_label)
@@ -71,8 +71,16 @@ class UILoader:
         layout.addStretch()
         widget.setLayout(layout)
         return widget
-
-
+    
+    @staticmethod
+    def create_recent_matches_section(content_layout):
+        recent_matches_widget = UILoader.create_sub_tab_match(Queries.get_home_matches())      
+        recent_section_widget = qtw.QWidget()
+        recent_matches_layout = qtw.QVBoxLayout(recent_section_widget)
+        recent_matches_layout.addWidget(recent_matches_widget)
+        recent_section_widget.setMaximumHeight(300)
+        content_layout.addWidget(recent_section_widget)
+        
     # Create Home tab content
     @staticmethod
     def create_home_tab():
@@ -90,18 +98,7 @@ class UILoader:
         content_widget.setSizePolicy(qtw.QSizePolicy.Fixed, qtw.QSizePolicy.Expanding)
         content_widget.setMinimumWidth(scroll_area.viewport().width())  
 
-        favorite_matches_widget = UILoader.create_sub_tab_match(Queries.get_subscribed_matches(1, 1)) #for now
-        
-        # use this after implementing get_home_matches() in Query.py
-        
-        #favorite_matches_widget = UILoader.create_sub_tab_match(Queries.get_home_matches())
-        
-        favorite_section_widget = qtw.QWidget()
-        favorite_section_layout = qtw.QVBoxLayout(favorite_section_widget)
-        favorite_section_layout.addWidget(favorite_matches_widget)
-        favorite_section_widget.setMaximumHeight(300)
-
-        content_layout.addWidget(favorite_section_widget)
+        UILoader.create_recent_matches_section(content_layout)
 
         news_layout = Favorite.create_news_layout(-1)
 

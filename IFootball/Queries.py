@@ -771,65 +771,58 @@ class Queries:
         return result
 
     def get_home_matches():
-        query = """
-        SELECT 
-            m.match_utc_date,
-            m.matchday,
-            t1.short_name AS home_team,
-            t2.short_name AS away_team,
-            s.full_time_home AS home_score,
-            s.full_time_away AS away_score,
-            m.competition_id,
-            m.match_id,
-            m.home_team_id,
-            m.away_team_id,
-            m.subscribed
-        FROM matches m
-        JOIN teams t1 ON m.home_team_id = t1.team_id
-        JOIN teams t2 ON m.away_team_id = t2.team_id
-        LEFT JOIN scores s ON m.match_id = s.match_id
-        WHERE m.subscribed = 'Yes'
-        AND m.match_utc_date BETWEEN DATE_SUB(CURDATE(), INTERVAL %s WEEK)  -- From 'last' weeks ago
-                                AND DATE_ADD(CURDATE(), INTERVAL %s WEEK)  -- To 'next' weeks in future
-        ORDER BY m.match_utc_date ASC
-        """
+        
+        matches = Queries.get_subscribed_matches()
+        current_date = datetime.utcnow()
+        matches_to_show = []    #add which matches to be shown in this
+        
+        for match in matches:
+            match_date = match["match_date"]
+            if match_date < current_date and len(matches_to_show) == 0:
+                matches_to_show.append(match)   #last match of fav_team
+            elif match_date >= current_date:
+                matches_to_show.append(match)   #next match of fav_team
+                break
 
-        # Execute the query with no time limits
-        cursor.execute(query,2,2)
-        matches = cursor.fetchall()
+        # You can add more matches to matches_to_show here if needed in the future
 
         result = []
-        for row in matches:
-            if row[6] == 2001:
+        for match in matches_to_show:
+            competition_id = match["competition_id"]
+            if competition_id == 2001:
                 competition_name = "UCL"
-            elif row[6] == 2021:
+            elif competition_id == 2021:
                 competition_name = "EPL"
-            elif row[6] == 2015:
+            elif competition_id == 2015:
                 competition_name = "Ligue 1"
-            elif row[6] == 2014:
+            elif competition_id == 2014:
                 competition_name = "LaLiga"
-            elif row[6] == 2002:
+            elif competition_id == 2002:
                 competition_name = "Bundesliga"
-            elif row[6] == 2019:
+            elif competition_id == 2019:
                 competition_name = "Serie A"
-            
-            appended_matchday = f"{competition_name} R{row[1]}"
+            else:
+                competition_name = "Unknown"
+
+            #appended_matchday = f"{competition_name} R{match['matchday']}"
+
             fixture_data = {
-                "match_date": row[0],
-                "matchday": appended_matchday,
-                "home_team": row[2],
-                "away_team": row[3],
-                "home_score": row[4],
-                "away_score": row[5],
-                "competition_id": row[6], 
-                "match_id": row[7],
-                "home_team_id": row[8],
-                "away_team_id": row[9],
-                "subscribed": row[10]
+                "match_date": match["match_date"],
+                "matchday": match["matchday"],
+                "home_team": match["home_team"],
+                "away_team": match["away_team"],
+                "home_score": match["home_score"],
+                "away_score": match["away_score"],
+                "competition_id": match["competition_id"],
+                "match_id": match["match_id"],
+                "home_team_id": match["home_team_id"],
+                "away_team_id": match["away_team_id"],
+                "subscribed": match["subscribed"]
             }
             result.append(fixture_data)
 
         return result
+
     
     def get_player_stats(competition_id):
         # Initialize result dictionary to hold player stats
