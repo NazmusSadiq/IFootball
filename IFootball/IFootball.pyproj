@@ -23,6 +23,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="CustomQueries.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Favorite.py" />
     <Compile Include="Main.py" />
     <Compile Include="API_Call.py">
@@ -31,6 +34,7 @@
     <Compile Include="Matches.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Custom.py" />
     <Compile Include="News.py">
       <SubType>Code</SubType>
     </Compile>

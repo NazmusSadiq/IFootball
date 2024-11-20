@@ -3,7 +3,6 @@ import mysql.connector
 import requests
 from datetime import datetime, timedelta
 
-# Connect to MySQL
 db = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -11,8 +10,8 @@ db = mysql.connector.connect(
     database="IFootball"
 )
 cursor = db.cursor()
+new_user = False
 
-# Check if there are any matches in the database
 cursor.execute("SELECT COUNT(*) FROM matches")
 match_count = cursor.fetchone()[0]
 
@@ -26,13 +25,11 @@ if match_count > 0:
 else:
     start_date = '2024-08-01'  
     end_date = '2025-07-01'
+    new_user = True
     
-# API call to get data
 API_TOKEN = '8511ddac058c4982b7c64722e71b77ee'
 headers = {'X-Auth-Token': API_TOKEN}
 
-
-# Helper function to make API calls for a given date range
 def fetch_matches_for_date_range(start, end):
     print(f"Fetching matches from {start} to {end}")
     uri = f'https://api.football-data.org/v4/matches?dateFrom={start}&dateTo={end}'
@@ -63,64 +60,53 @@ def fetch_matches_in_intervals(start_date, end_date):
     
     return all_matches
 
-# Fetch all matches for the given month
 matches = fetch_matches_in_intervals(start_date, end_date)
 
-# Insert teams, seasons, competitions, and areas if they don't already exist
 for match in matches:
     competition_id = match['competition']['id']
     
-    # Check if competition_id is one of the specified values
-    if competition_id >0:        #top 5 leagues and UCL
-        # Insert Area
-        area = match['area']
-        cursor.execute("""
-            INSERT INTO areas (area_id, area_name, area_code, area_flag)
-            VALUES (%s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE area_name=VALUES(area_name), area_code=VALUES(area_code), area_flag=VALUES(area_flag)
-        """, (area['id'], area['name'], area['code'], area['flag']))
+    if competition_id >0: 
+        if new_user == True:
+            area = match['area']
+            cursor.execute("""
+                INSERT INTO areas (area_id, area_name, area_code, area_flag)
+                VALUES (%s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE area_name=VALUES(area_name), area_code=VALUES(area_code), area_flag=VALUES(area_flag)
+            """, (area['id'], area['name'], area['code'], area['flag']))
 
-        # Insert Home Team
-        home_team = match['homeTeam']
-        cursor.execute("""
-            INSERT INTO teams (team_id, team_name, short_name, tla, crest)
-            VALUES (%s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE team_name=VALUES(team_name), short_name=VALUES(short_name), tla=VALUES(tla), crest=VALUES(crest)
-        """, (home_team['id'], home_team['name'], home_team['shortName'], home_team['tla'], home_team['crest']))
+            home_team = match['homeTeam']
+            cursor.execute("""
+                INSERT INTO teams (team_id, team_name, short_name, tla, crest)
+                VALUES (%s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE team_name=VALUES(team_name), short_name=VALUES(short_name), tla=VALUES(tla), crest=VALUES(crest)
+            """, (home_team['id'], home_team['name'], home_team['shortName'], home_team['tla'], home_team['crest']))
 
-        # Insert Away Team
-        away_team = match['awayTeam']
-        cursor.execute("""
-            INSERT INTO teams (team_id, team_name, short_name, tla, crest)
-            VALUES (%s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE team_name=VALUES(team_name), short_name=VALUES(short_name), tla=VALUES(tla), crest=VALUES(crest)
-        """, (away_team['id'], away_team['name'], away_team['shortName'], away_team['tla'], away_team['crest']))
+            away_team = match['awayTeam']
+            cursor.execute("""
+                INSERT INTO teams (team_id, team_name, short_name, tla, crest)
+                VALUES (%s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE team_name=VALUES(team_name), short_name=VALUES(short_name), tla=VALUES(tla), crest=VALUES(crest)
+            """, (away_team['id'], away_team['name'], away_team['shortName'], away_team['tla'], away_team['crest']))
 
-        # Insert Season
-        season = match['season']
-        cursor.execute("""
-            INSERT INTO seasons (season_id, start_date, end_date, current_matchday)
-            VALUES (%s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE start_date=VALUES(start_date), end_date=VALUES(end_date), current_matchday=VALUES(current_matchday)
-        """, (season['id'], season['startDate'], season['endDate'], season['currentMatchday']))
+            season = match['season']
+            cursor.execute("""
+                INSERT INTO seasons (season_id, start_date, end_date, current_matchday)
+                VALUES (%s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE start_date=VALUES(start_date), end_date=VALUES(end_date), current_matchday=VALUES(current_matchday)
+            """, (season['id'], season['startDate'], season['endDate'], season['currentMatchday']))
 
-        # Insert Competition
-        competition = match['competition']
+            competition = match['competition']
 
-        # Check if the competition name is 'Primera Division' and replace it with 'LaLiga'
-        competition_name = competition['name']
-        if competition_name.lower() == 'primera division':
-            competition_name = 'LaLiga'
+            competition_name = competition['name']
+            if competition_name.lower() == 'primera division':
+                competition_name = 'LaLiga'
 
-        # Insert or update the competition in the database
-        cursor.execute("""
-            INSERT INTO competitions (competition_id, competition_name, competition_code, competition_type, competition_emblem)
-            VALUES (%s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE competition_name=VALUES(competition_name), competition_code=VALUES(competition_code), competition_type=VALUES(competition_type), competition_emblem=VALUES(competition_emblem)
-        """, (competition['id'], competition_name, competition['code'], competition['type'], competition['emblem']))
+            cursor.execute("""
+                INSERT INTO competitions (competition_id, competition_name, competition_code, competition_type, competition_emblem)
+                VALUES (%s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE competition_name=VALUES(competition_name), competition_code=VALUES(competition_code), competition_type=VALUES(competition_type), competition_emblem=VALUES(competition_emblem)
+            """, (competition['id'], competition_name, competition['code'], competition['type'], competition['emblem']))
 
-
-        # Insert Match
         match_utc_date = datetime.strptime(match['utcDate'], '%Y-%m-%dT%H:%M:%SZ')
         match_utc_date = match_utc_date.strftime('%Y-%m-%d %H:%M:%S')
         
@@ -147,7 +133,6 @@ for match in matches:
             match['season']['id'], match['competition']['id'], match['area']['id']
         ))
 
-        # Insert Score
         cursor.execute("""
             INSERT INTO scores (match_id, winner, duration, full_time_home, full_time_away, half_time_home, half_time_away)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -164,21 +149,6 @@ for match in matches:
             match['score']['halfTime']['home'], match['score']['halfTime']['away']
         ))
 
-        # Insert Referees
-        for referee in match['referees']:
-            cursor.execute("""
-                INSERT INTO referees (referee_id, referee_name, referee_type, nationality)
-                VALUES (%s, %s, %s, %s)
-                ON DUPLICATE KEY UPDATE referee_name=VALUES(referee_name), referee_type=VALUES(referee_type), nationality=VALUES(nationality)
-            """, (referee['id'], referee['name'], referee['type'], referee['nationality']))
-
-            cursor.execute("""
-                INSERT INTO match_referees (match_id, referee_id) 
-                VALUES (%s, %s)
-                ON DUPLICATE KEY UPDATE match_id=match_id, referee_id=referee_id
-            """, (match['id'], referee['id']))
-
-# Commit and close connection
 db.commit()
 cursor.close()
 db.close()

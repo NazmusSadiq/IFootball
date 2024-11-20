@@ -25,15 +25,18 @@ class MainWindow(qtw.QWidget):
         self.match_tab = UILoader.create_match_tab(self)
         self.favorite_tab = UILoader.create_favorite_tab(self)
         self.stats_tab = UILoader.create_stats_tab(self)
+        self.custom_tab = UILoader.create_custom_tab(self)  
 
         # Add these widgets to the stack
         self.stack.addWidget(self.home_tab)
         self.stack.addWidget(self.match_tab)
         self.stack.addWidget(self.favorite_tab)
         self.stack.addWidget(self.stats_tab)
+        self.stack.addWidget(self.custom_tab)  
 
         self.layout().addWidget(self.stack)
 
+        # Tab bar with buttons
         self.tab_bar_layout = qtw.QHBoxLayout()
         self.home_button = UILoader.create_bottom_tab(self, "Home", "Images/home_uc.png", "Images/home_c.png")
         self.match_button = UILoader.create_bottom_tab(self, "Match", "Images/whistle_uc.png", "Images/whistle_c.png")
@@ -41,11 +44,13 @@ class MainWindow(qtw.QWidget):
         crest_pixmap = Matches.get_team_crest(fav_id, 1)
         self.favorite_button = UILoader.create_bottom_tab(self, "Favorite", crest_pixmap, crest_pixmap)
         self.stats_button = UILoader.create_bottom_tab(self, "Stats", "Images/stats_uc.png", "Images/stats_c.png")
+        self.custom_button = UILoader.create_bottom_tab(self, "Custom", "Images/custom_uc.png", "Images/custom_c.png")  # New button for custom tab
 
         self.tab_bar_layout.addWidget(self.home_button)
         self.tab_bar_layout.addWidget(self.match_button)
         self.tab_bar_layout.addWidget(self.favorite_button)
         self.tab_bar_layout.addWidget(self.stats_button)
+        self.tab_bar_layout.addWidget(self.custom_button) 
 
         self.layout().addLayout(self.tab_bar_layout)
 
@@ -62,12 +67,15 @@ class MainWindow(qtw.QWidget):
             self.update_active_tab(self.favorite_button, 2)
         elif selected_button == self.stats_button:
             self.update_active_tab(self.stats_button, 3)
+        elif selected_button == self.custom_button:  
+            self.update_active_tab(self.custom_button, 4)
 
     def update_active_tab(self, active_button, index):
         self.reset_button(self.home_button)
         self.reset_button(self.match_button)
         self.reset_button(self.favorite_button)
         self.reset_button(self.stats_button)
+        self.reset_button(self.custom_button)  
         active_button.setIcon(qtg.QIcon(active_button.icon_path_selected))
         active_button.setStyleSheet("QPushButton { text-align: center; color: black; font-weight: bold; }")
         self.stack.setCurrentIndex(index)
@@ -79,27 +87,44 @@ class MainWindow(qtw.QWidget):
         button.setIcon(qtg.QIcon(button.icon_path_default))
         button.setStyleSheet("QPushButton { text-align: center; color: grey; }")
 
-    def reload_everything(self):
-        for i in reversed (range(self.stack.count())):
+    def reload_tabs_after_new_fav_team(self,tab_id):
+        for i in reversed(range(self.stack.count())):
             widget = self.stack.widget(i)
             if widget:
                 self.stack.removeWidget(widget)
-                widget.deleteLater() 
+                widget.deleteLater()
 
         self.home_tab = UILoader.create_home_tab()
         self.match_tab = UILoader.create_match_tab(self)
         self.favorite_tab = UILoader.create_favorite_tab(self)
         self.stats_tab = UILoader.create_stats_tab(self)
+        self.custom_tab = UILoader.create_custom_tab(self)  
 
         self.stack.addWidget(self.home_tab)
         self.stack.addWidget(self.match_tab)
         self.stack.addWidget(self.favorite_tab)
         self.stack.addWidget(self.stats_tab)
-        self.update_active_tab(self.favorite_button, 2)
+        self.stack.addWidget(self.custom_tab)
 
-        self.stack.setCurrentWidget(self.favorite_tab)  
+        if tab_id==2:
+            self.update_active_tab(self.favorite_button, 2)
+            self.stack.setCurrentWidget(self.favorite_tab) 
+        
+    def reload_custom_tab(self):
+        for i in range(self.stack.count()):
+            widget = self.stack.widget(i)
+            if widget == self.custom_tab:
+                self.stack.removeWidget(widget)
+                widget.deleteLater()
+                break
+            
+        self.custom_tab = UILoader.create_custom_tab(self)
+        self.stack.addWidget(self.custom_tab)
+        self.update_active_tab(self.favorite_button, 2)
+        self.stack.setCurrentWidget(self.custom_tab) 
 
 if __name__ == '__main__':
     app = qtw.QApplication(sys.argv)
     window = MainWindow()
     sys.exit(app.exec_())
+

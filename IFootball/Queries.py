@@ -24,8 +24,7 @@ class Queries:
         except Exception as e:
             print(f"Error fetching teams from database: {e}")
             return []
-        
-    ## Query to get Team_Id based on Team_Name   
+         
     def get_team_id_by_name(full_name):
         query = "SELECT team_id FROM teams WHERE team_name = %s"
         cursor.execute(query, (full_name,))
@@ -822,7 +821,6 @@ class Queries:
             result.append(fixture_data)
 
         return result
-
     
     def get_player_stats(competition_id):
         # Initialize result dictionary to hold player stats
@@ -935,3 +933,4 @@ class Queries:
             })
 
         return result
+    

@@ -162,24 +162,8 @@ for match in matches:
             match['score']['halfTime']['home'], match['score']['halfTime']['away']
         ))
 
-        # Insert Referees
-        for referee in match['referees']:
-            cursor.execute("""
-                INSERT INTO referees (referee_id, referee_name, referee_type, nationality)
-                VALUES (%s, %s, %s, %s)
-                ON DUPLICATE KEY UPDATE referee_name=VALUES(referee_name), referee_type=VALUES(referee_type), nationality=VALUES(nationality)
-            """, (referee['id'], referee['name'], referee['type'], referee['nationality']))
-
-            cursor.execute("""
-                INSERT INTO match_referees (match_id, referee_id) 
-                VALUES (%s, %s)
-                ON DUPLICATE KEY UPDATE match_id=match_id, referee_id=referee_id
-            """, (match['id'], referee['id']))
-
-# Commit and close connection
 db.commit()
 cursor.close()
 db.close()
 
-# Print total number of matches
 print(f"Total matches found: {len(matches)}")

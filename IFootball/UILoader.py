@@ -1,12 +1,15 @@
 from ast import main
 import json
 import os
+from turtle import st
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as qtg
 import PyQt5.QtCore as qtc
 from Matches import Matches
 from Stats import Stats
 from Queries import Queries
+from CustomQueries import CustomQueries
+from Custom import Custom
 from Favorite import Favorite
 from datetime import datetime
 
@@ -348,9 +351,7 @@ class UILoader:
         layout.addStretch()
         widget.setLayout(layout)
         return widget
-
-
-    
+ 
     @staticmethod
     def create_favorite_tab(main_window):
         # Create the favorite tab widget and layout
@@ -395,7 +396,6 @@ class UILoader:
         section_layout.addWidget(sub_stack)
         main_layout.addWidget(section_widget)
 
-        # Subtab buttons
         sub_tab_bar_layout = qtw.QHBoxLayout()
         buttons = ["Fixture", "Stats","News"]
         for i, name in enumerate(buttons):
@@ -412,7 +412,6 @@ class UILoader:
         change_team_button.setStyleSheet("QPushButton { text-align: center; }")
         change_team_button.clicked.connect(lambda: UILoader.change_favorite_team(main_window, main_layout))
     
-        # Add "Change Team" button above the sub-tab buttons
         main_layout.insertWidget(0, change_team_button)
 
         UILoader.update_sub_tab_buttons(sub_tab_bar_layout, 0, sub_tab_bar_layout.itemAt(0).widget(), sub_stack)
@@ -420,6 +419,107 @@ class UILoader:
         favorite_tab.setLayout(main_layout)
 
         return favorite_tab
+
+    @staticmethod
+    def create_custom_tab(main_window):
+        custom_tab = qtw.QWidget()
+        custom_tab.setObjectName("custom_tab")
+        main_layout = qtw.QVBoxLayout()
+
+        UILoader.clear_section(main_layout)
+
+        competitions = CustomQueries.get_custom_competitions()
+        max_competitions = 3
+        selected_competition_id = 0
+
+        # Main stacked widget for toggling between layouts
+        stacked_layout = qtw.QStackedWidget(main_window)
+
+        # Create the main fixtures and stats layout
+        main_view_layout = qtw.QVBoxLayout()
+
+        top_buttons_layout = qtw.QHBoxLayout()
+
+        add_comp_button = qtw.QPushButton("Add Competition")
+        add_comp_button.setStyleSheet("QPushButton { text-align: center; font-size: 14px; padding: 5px 10px; }")
+        add_comp_button.setEnabled(len(competitions) < max_competitions)
+        add_comp_button.clicked.connect(lambda: Custom.add_new_competition(main_window, main_layout)) 
+        top_buttons_layout.addWidget(add_comp_button)
+
+        modify_comp_button = qtw.QPushButton("Modify Competition")
+        modify_comp_button.setStyleSheet("QPushButton { text-align: center; font-size: 14px; padding: 5px 10px; }")
+        modify_comp_button.setEnabled(len(competitions) > 0)
+        modify_comp_button.clicked.connect(lambda: Custom.modify_competition(main_window, stacked_layout, main_view_widget))
+        top_buttons_layout.addWidget(modify_comp_button)
+
+        delete_comp_button = qtw.QPushButton("Delete Competition")
+        delete_comp_button.setStyleSheet("QPushButton { text-align: center; font-size: 14px; padding: 5px 10px; }")
+        delete_comp_button.setEnabled(len(competitions) > 0)
+        delete_comp_button.clicked.connect(lambda: Custom.delete_competition(main_window))
+        top_buttons_layout.addWidget(delete_comp_button)
+
+        main_view_layout.addLayout(top_buttons_layout)
+
+        comp_buttons_layout = qtw.QHBoxLayout()
+        for i, comp in enumerate(competitions):
+            comp_button = qtw.QPushButton(comp["competition_name"])
+            cid = comp["competition_id"]
+            comp_button.setProperty("competition_id", cid)
+            comp_button.setStyleSheet("QPushButton { text-align: center; font-size: 12px; padding: 3px 8px; }")
+            comp_button.clicked.connect(lambda _, button=comp_button: (
+                setattr(UILoader, "selected_competition_id", button.property("competition_id")),
+                UILoader.switch_custom_competition(main_window, button.property("competition_id"))
+            ))
+            comp_buttons_layout.addWidget(comp_button)
+
+        main_view_layout.addLayout(comp_buttons_layout)
+
+        fixture_layout = Custom.create_fixtures_layout()
+        stats_layout = Custom.create_stats_layout()
+
+        sub_tab_bar_layout = qtw.QHBoxLayout()
+        fixture_button = qtw.QPushButton("Fixtures")
+        fixture_button.setStyleSheet("QPushButton { text-align: center; }")
+        fixture_button.clicked.connect(lambda: UILoader.update_sub_tab_buttons(sub_tab_bar_layout, 0, fixture_button, sub_stack))
+
+        stats_button = qtw.QPushButton("Stats")
+        stats_button.setStyleSheet("QPushButton { text-align: center; }")
+        stats_button.clicked.connect(lambda: UILoader.update_sub_tab_buttons(sub_tab_bar_layout, 1, stats_button, sub_stack))
+
+        sub_tab_bar_layout.addWidget(fixture_button)
+        sub_tab_bar_layout.addWidget(stats_button)
+
+        main_view_layout.addLayout(sub_tab_bar_layout)
+
+        sub_stack = qtw.QStackedWidget(main_window)
+        fixture_tab = qtw.QWidget()
+        fixture_tab.setLayout(fixture_layout)
+        stats_tab = qtw.QWidget()
+        stats_tab.setLayout(stats_layout)
+
+        sub_stack.addWidget(fixture_tab)
+        sub_stack.addWidget(stats_tab)
+
+        main_view_layout.addWidget(sub_stack)
+
+        main_view_widget = qtw.QWidget()
+        main_view_widget.setLayout(main_view_layout)
+
+        # Add the main view widget to the stacked layout
+        stacked_layout.addWidget(main_view_widget)
+
+        # Set the stacked layout as the main layout
+        main_layout.addWidget(stacked_layout)
+        custom_tab.setLayout(main_layout)
+
+        UILoader.update_sub_tab_buttons(sub_tab_bar_layout, 0, fixture_button, sub_stack)
+
+        return custom_tab
+
+
+    @staticmethod
+    def switch_custom_competition(main_window, cid):
+        Custom.selected_comp_id=cid
 
     @staticmethod
     def update_sub_tab_buttons(layout, active_index, active_button, sub_stack, should=1):
@@ -449,8 +549,7 @@ class UILoader:
         Queries.set_fav_team_matches_as_subscribed(old_id,1)
         Queries.set_fav_team_matches_as_subscribed(n_fav_id)
         if hasattr(main_window, 'favorite_button') and main_window.favorite_button:
-            main_window.favorite_button.setIcon(qtg.QIcon(n_crest_pixmap))
-            main_window.reload_everything()
+            main_window.reload_tabs_after_new_fav_team(2)
             
    
 
