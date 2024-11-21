@@ -22,7 +22,37 @@ class QueryTexts:
         ORDER BY m.match_utc_date ASC
         LIMIT %s
         """
-
+    team_stats_in_fav = """
+        SELECT 
+            c.competition_name, 
+            c.competition_id,
+            COUNT(m.match_id) AS total_matches,
+            SUM(CASE 
+                WHEN (m.home_team_id = %s AND s.full_time_home > s.full_time_away) OR (m.away_team_id = %s AND s.full_time_away > s.full_time_home) THEN 1 
+                ELSE 0 
+            END) AS wins,
+            SUM(CASE 
+                WHEN s.full_time_home = s.full_time_away THEN 1 
+                ELSE 0 
+            END) AS draws,
+            SUM(CASE 
+                WHEN (m.home_team_id = %s AND s.full_time_home < s.full_time_away) OR (m.away_team_id = %s AND s.full_time_away < s.full_time_home) THEN 1 
+                ELSE 0 
+            END) AS losses,
+            SUM(CASE 
+                WHEN m.home_team_id = %s THEN s.full_time_home 
+                ELSE s.full_time_away 
+            END) AS goals_scored,
+            SUM(CASE 
+                WHEN m.home_team_id = %s THEN s.full_time_away 
+                ELSE s.full_time_home 
+            END) AS goals_conceded
+        FROM matches m
+        JOIN scores s ON m.match_id = s.match_id
+        JOIN competitions c ON m.competition_id = c.competition_id
+        WHERE m.home_team_id = %s OR m.away_team_id = %s
+        GROUP BY c.competition_id
+        """
     biggest_win_query = """
         SELECT 
             c.competition_name,

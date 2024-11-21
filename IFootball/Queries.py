@@ -62,37 +62,7 @@ class Queries:
 
     def get_team_stats_in_fav(team_id):
     # Query to get overall team stats by competition
-        query = """
-        SELECT 
-            c.competition_name, 
-            c.competition_id,
-            COUNT(m.match_id) AS total_matches,
-            SUM(CASE 
-                WHEN (m.home_team_id = %s AND s.full_time_home > s.full_time_away) OR (m.away_team_id = %s AND s.full_time_away > s.full_time_home) THEN 1 
-                ELSE 0 
-            END) AS wins,
-            SUM(CASE 
-                WHEN s.full_time_home = s.full_time_away THEN 1 
-                ELSE 0 
-            END) AS draws,
-            SUM(CASE 
-                WHEN (m.home_team_id = %s AND s.full_time_home < s.full_time_away) OR (m.away_team_id = %s AND s.full_time_away < s.full_time_home) THEN 1 
-                ELSE 0 
-            END) AS losses,
-            SUM(CASE 
-                WHEN m.home_team_id = %s THEN s.full_time_home 
-                ELSE s.full_time_away 
-            END) AS goals_scored,
-            SUM(CASE 
-                WHEN m.home_team_id = %s THEN s.full_time_away 
-                ELSE s.full_time_home 
-            END) AS goals_conceded
-        FROM matches m
-        JOIN scores s ON m.match_id = s.match_id
-        JOIN competitions c ON m.competition_id = c.competition_id
-        WHERE m.home_team_id = %s OR m.away_team_id = %s
-        GROUP BY c.competition_id
-        """
+        query = QueryTexts.team_stats_in_fav
         cursor.execute(query, (team_id, team_id, team_id, team_id, team_id, team_id, team_id, team_id))
         stats = cursor.fetchall()
 
