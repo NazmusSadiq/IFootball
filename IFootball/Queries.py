@@ -1,4 +1,5 @@
 import mysql.connector
+from QueryTexts import QueryTexts
 from datetime import datetime, timedelta
 
 db = mysql.connector.connect(
@@ -38,29 +39,7 @@ class Queries:
         return result[0] if result else None
 
     def get_last_matches(team_id, limit=10):
-        query = """
-        SELECT 
-            m.match_id, 
-            t1.short_name AS home_team, 
-            t2.short_name AS away_team, 
-            s.full_time_home, 
-            s.full_time_away, 
-            m.match_utc_date, 
-            c.competition_name,  
-            m.matchday,
-            m.home_team_id,
-            m.away_team_id,
-            m.subscribed            
-        FROM matches m
-        JOIN teams t1 ON m.home_team_id = t1.team_id
-        JOIN teams t2 ON m.away_team_id = t2.team_id
-        LEFT JOIN scores s ON m.match_id = s.match_id
-        JOIN competitions c ON m.competition_id = c.competition_id -- Join to get competition name
-        WHERE (m.home_team_id = %s OR m.away_team_id = %s) 
-          AND m.match_utc_date <= NOW()
-        ORDER BY m.match_utc_date ASC
-        LIMIT %s
-        """
+        query = QueryTexts.last_matches_query
         cursor.execute(query, (team_id, team_id, limit))
         matches = cursor.fetchall()
 
@@ -118,56 +97,12 @@ class Queries:
         stats = cursor.fetchall()
 
         # Query to get the biggest win by competition
-        biggest_win_query = """
-        SELECT 
-            c.competition_name,
-            m.match_utc_date,
-            t2.short_name AS opponent,
-            GREATEST(ABS(s.full_time_home - s.full_time_away), 0) AS goal_difference,
-            CASE 
-                WHEN m.home_team_id = %s THEN s.full_time_home 
-                ELSE s.full_time_away 
-            END AS team_goals,
-            CASE 
-                WHEN m.home_team_id = %s THEN s.full_time_away 
-                ELSE s.full_time_home 
-            END AS opponent_goals,
-            m.matchday 
-        FROM matches m
-        JOIN teams t2 ON (m.home_team_id = t2.team_id OR m.away_team_id = t2.team_id) AND t2.team_id != %s
-        JOIN scores s ON m.match_id = s.match_id
-        JOIN competitions c ON m.competition_id = c.competition_id
-        WHERE (m.home_team_id = %s OR m.away_team_id = %s) 
-          AND ((m.home_team_id = %s AND s.full_time_home > s.full_time_away) OR (m.away_team_id = %s AND s.full_time_away > s.full_time_home))
-        ORDER BY c.competition_name, goal_difference DESC, m.match_utc_date DESC
-        """
+        biggest_win_query = QueryTexts.biggest_win_query
         cursor.execute(biggest_win_query, (team_id, team_id, team_id, team_id, team_id, team_id, team_id))
         biggest_wins = cursor.fetchall()
 
         # Query to get the biggest loss by competition
-        biggest_loss_query = """
-        SELECT 
-            c.competition_name,
-            m.match_utc_date,
-            t2.short_name AS opponent,
-            GREATEST(ABS(s.full_time_home - s.full_time_away), 0) AS goal_difference,
-            CASE 
-                WHEN m.home_team_id = %s THEN s.full_time_home 
-                ELSE s.full_time_away 
-            END AS team_goals,
-            CASE 
-                WHEN m.home_team_id = %s THEN s.full_time_away 
-                ELSE s.full_time_home 
-            END AS opponent_goals,
-            m.matchday 
-        FROM matches m
-        JOIN teams t2 ON (m.home_team_id = t2.team_id OR m.away_team_id = t2.team_id) AND t2.team_id != %s
-        JOIN scores s ON m.match_id = s.match_id
-        JOIN competitions c ON m.competition_id = c.competition_id
-        WHERE (m.home_team_id = %s OR m.away_team_id = %s) 
-          AND ((m.home_team_id = %s AND s.full_time_home < s.full_time_away) OR (m.away_team_id = %s AND s.full_time_away < s.full_time_home))
-        ORDER BY c.competition_name, goal_difference DESC, m.match_utc_date DESC
-        """
+        biggest_loss_query = QueryTexts.biggest_loss_query
         cursor.execute(biggest_loss_query, (team_id, team_id, team_id, team_id, team_id, team_id, team_id))
         biggest_losses = cursor.fetchall()
 
@@ -235,26 +170,7 @@ class Queries:
         return result
 
     def get_next_matches(team_id, limit=10):
-        query = """
-        SELECT 
-            m.match_id, 
-            ht.short_name AS home_team, 
-            at.short_name AS away_team, 
-            m.match_utc_date, 
-            c.competition_name,   
-            m.matchday,
-            m.home_team_id,
-            m.away_team_id,
-            m.subscribed          
-        FROM matches m
-        JOIN teams ht ON m.home_team_id = ht.team_id
-        JOIN teams at ON m.away_team_id = at.team_id
-        JOIN competitions c ON m.competition_id = c.competition_id  -- Join to get competition name
-        WHERE (m.home_team_id = %s OR m.away_team_id = %s) 
-          AND m.match_utc_date > NOW()
-        ORDER BY m.match_utc_date ASC
-        LIMIT %s
-        """
+        query = QueryTexts.next_matches_query
         cursor.execute(query, (team_id, team_id, limit))
         matches = cursor.fetchall()
 
@@ -273,163 +189,9 @@ class Queries:
             }
             for row in matches
         ]
-    
-    def get_team_stats(team_id):
-        # Query to get overall team stats by competition
-        query = """
-        SELECT 
-            c.competition_name, 
-            COUNT(m.match_id) AS total_matches,
-            SUM(CASE 
-                WHEN (m.home_team_id = %s AND s.full_time_home > s.full_time_away) OR (m.away_team_id = %s AND s.full_time_away > s.full_time_home) THEN 1 
-                ELSE 0 
-            END) AS wins,
-            SUM(CASE 
-                WHEN s.full_time_home = s.full_time_away THEN 1 
-                ELSE 0 
-            END) AS draws,
-            SUM(CASE 
-                WHEN (m.home_team_id = %s AND s.full_time_home < s.full_time_away) OR (m.away_team_id = %s AND s.full_time_away < s.full_time_home) THEN 1 
-                ELSE 0 
-            END) AS losses,
-            SUM(CASE 
-                WHEN m.home_team_id = %s THEN s.full_time_home 
-                ELSE s.full_time_away 
-            END) AS goals_scored,
-            SUM(CASE 
-                WHEN m.home_team_id = %s THEN s.full_time_away 
-                ELSE s.full_time_home 
-            END) AS goals_conceded
-        FROM matches m
-        JOIN scores s ON m.match_id = s.match_id
-        JOIN competitions c ON m.competition_id = c.competition_id
-        WHERE m.home_team_id = %s OR m.away_team_id = %s
-        GROUP BY c.competition_name
-        """
-        cursor.execute(query, (team_id, team_id, team_id, team_id, team_id, team_id, team_id, team_id))
-        stats = cursor.fetchall()
-
-        # Query to get the biggest win by competition
-        biggest_win_query = """
-        SELECT 
-            c.competition_name,
-            m.match_utc_date,
-            t2.short_name AS opponent,
-            GREATEST(ABS(s.full_time_home - s.full_time_away), 0) AS goal_difference,
-            CASE 
-                WHEN m.home_team_id = %s THEN s.full_time_home 
-                ELSE s.full_time_away 
-            END AS team_goals,
-            CASE 
-                WHEN m.home_team_id = %s THEN s.full_time_away 
-                ELSE s.full_time_home 
-            END AS opponent_goals,
-            m.matchday 
-        FROM matches m
-        JOIN teams t2 ON (m.home_team_id = t2.team_id OR m.away_team_id = t2.team_id) AND t2.team_id != %s
-        JOIN scores s ON m.match_id = s.match_id
-        JOIN competitions c ON m.competition_id = c.competition_id
-        WHERE (m.home_team_id = %s OR m.away_team_id = %s) 
-          AND ((m.home_team_id = %s AND s.full_time_home > s.full_time_away) OR (m.away_team_id = %s AND s.full_time_away > s.full_time_home))
-        ORDER BY c.competition_name, goal_difference DESC, m.match_utc_date DESC
-        """
-        # Execute the query to fetch biggest wins
-        cursor.execute(biggest_win_query, (team_id, team_id, team_id, team_id, team_id, team_id, team_id))
-        biggest_wins = cursor.fetchall()
-
-        # Dictionary to hold the biggest win for each competition
-        biggest_win_dict = {}
-
-        for win in biggest_wins:
-            competition_name = win[0]
-            goal_difference = win[3]
-
-            # Check if this competition already has a biggest win
-            if competition_name in biggest_win_dict:
-                # If current goal_difference is greater, replace the existing biggest win
-                if goal_difference > biggest_win_dict[competition_name]['goal_difference']:
-                    biggest_win_dict[competition_name] = {
-                        "date": win[1].strftime('%Y-%m-%d'),
-                        "opponent": win[2],
-                        "goal_difference": goal_difference,
-                        "team_goals": win[4],
-                        "opponent_goals": win[5],
-                        "matchday": win[6]  # Add match day
-                    }
-            else:
-                # If no entry for this competition, add it
-                biggest_win_dict[competition_name] = {
-                    "date": win[1].strftime('%Y-%m-%d'),
-                    "opponent": win[2],
-                    "goal_difference": goal_difference,
-                    "team_goals": win[4],
-                    "opponent_goals": win[5],
-                    "matchday": win[6]  # Add match day
-                }
-
-        # Formatting the result
-        result = []
-        for stat in stats:
-            biggest_win = biggest_win_dict.get(stat[0])  # Get the biggest win for the competition, or None if not available
-
-            competition_stat = {
-                "competition": stat[0],
-                "total_matches": stat[1],
-                "wins": stat[2],
-                "draws": stat[3],
-                "losses": stat[4],
-                "goals_scored": stat[5],
-                "goals_conceded": stat[6],
-                "goal_difference": stat[5] - stat[6],
-                "biggest_win": biggest_win  # Pass the single biggest win for each competition if available
-            }
-
-            result.append(competition_stat)
-
-        return result
 
     def get_competition_standings(competition_id):
-    # Query to get team standings for the given competition
-        query = """
-        SELECT 
-            t.short_name,
-            SUM(CASE 
-                WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 3 
-                WHEN s.full_time_home = s.full_time_away THEN 1 
-                ELSE 0 
-            END) AS points,
-            SUM(CASE 
-                WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 1 
-                ELSE 0 
-            END) AS wins,
-            SUM(CASE WHEN s.full_time_home = s.full_time_away THEN 1 ELSE 0 END) AS draws,
-            SUM(CASE 
-                WHEN (m.home_team_id = t.team_id AND s.full_time_home < s.full_time_away) OR (m.away_team_id = t.team_id AND s.full_time_away < s.full_time_home) THEN 1 
-                ELSE 0 
-            END) AS losses,
-            SUM(CASE 
-                WHEN m.home_team_id = t.team_id THEN s.full_time_home 
-                ELSE s.full_time_away 
-            END) AS goals_scored,
-            SUM(CASE 
-                WHEN m.home_team_id = t.team_id THEN s.full_time_away 
-                ELSE s.full_time_home 
-            END) AS goals_conceded,
-            (SUM(CASE 
-                WHEN m.home_team_id = t.team_id THEN s.full_time_home 
-                ELSE s.full_time_away 
-            END) - SUM(CASE 
-                WHEN m.home_team_id = t.team_id THEN s.full_time_away 
-                ELSE s.full_time_home 
-            END)) AS goal_difference
-        FROM teams t
-        JOIN matches m ON (m.home_team_id = t.team_id OR m.away_team_id = t.team_id)
-        JOIN scores s ON m.match_id = s.match_id
-        WHERE m.competition_id = %s
-        GROUP BY t.short_name
-        ORDER BY points DESC, goal_difference DESC, goals_scored DESC
-        """
-
+        query = QueryTexts.competition_standings_query
         cursor.execute(query, (competition_id,))
         standings = cursor.fetchall()
 
@@ -450,47 +212,8 @@ class Queries:
         return result
 
     def get_competition_standings_near_team(competition_id, team_id):
-        query = """
-        SELECT 
-            t.team_id,
-            t.short_name,
-            SUM(CASE 
-                WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 3 
-                WHEN s.full_time_home = s.full_time_away THEN 1 
-                ELSE 0 
-            END) AS points,
-            SUM(CASE 
-                WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 1 
-                ELSE 0 
-            END) AS wins,
-            SUM(CASE WHEN s.full_time_home = s.full_time_away THEN 1 ELSE 0 END) AS draws,
-            SUM(CASE 
-                WHEN (m.home_team_id = t.team_id AND s.full_time_home < s.full_time_away) OR (m.away_team_id = t.team_id AND s.full_time_away < s.full_time_home) THEN 1 
-                ELSE 0 
-            END) AS losses,
-            SUM(CASE 
-                WHEN m.home_team_id = t.team_id THEN s.full_time_home 
-                ELSE s.full_time_away 
-            END) AS goals_scored,
-            SUM(CASE 
-                WHEN m.home_team_id = t.team_id THEN s.full_time_away 
-                ELSE s.full_time_home 
-            END) AS goals_conceded,
-            (SUM(CASE 
-                WHEN m.home_team_id = t.team_id THEN s.full_time_home 
-                ELSE s.full_time_away 
-            END) - SUM(CASE 
-                WHEN m.home_team_id = t.team_id THEN s.full_time_away 
-                ELSE s.full_time_home 
-            END)) AS goal_difference
-        FROM teams t
-        JOIN matches m ON (m.home_team_id = t.team_id OR m.away_team_id = t.team_id)
-        JOIN scores s ON m.match_id = s.match_id
-        WHERE m.competition_id = %s
-        GROUP BY t.team_id, t.short_name
-        ORDER BY points DESC, goal_difference DESC, goals_scored DESC
-        """
-    
+        
+        query = QueryTexts.competition_standings_near_team_query
         # Execute the query to get the full standings
         cursor.execute(query, (competition_id,))
         standings = cursor.fetchall()
@@ -527,41 +250,7 @@ class Queries:
         return result
 
     def get_competition_stats(competition_id):
-    # Query to get team stats (goals scored, goals conceded, yellow and red cards)
-        query = """
-        SELECT 
-        t.short_name,
-        SUM(CASE 
-                WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 1 
-                ELSE 0 
-            END) AS wins,
-            SUM(CASE WHEN s.full_time_home = s.full_time_away THEN 1 ELSE 0 END) AS draws,
-            SUM(CASE 
-                WHEN (m.home_team_id = t.team_id AND s.full_time_home < s.full_time_away) OR (m.away_team_id = t.team_id AND s.full_time_away < s.full_time_home) THEN 1 
-                ELSE 0 
-            END) AS losses,
-        SUM(CASE 
-            WHEN m.home_team_id = t.team_id THEN s.full_time_home 
-            ELSE s.full_time_away 
-        END) AS goals_scored,
-        SUM(CASE 
-            WHEN m.home_team_id = t.team_id THEN s.full_time_away 
-            ELSE s.full_time_home 
-        END) AS goals_conceded,
-        0 AS yellow_cards,  
-        0 AS red_cards,
-        0 AS total_shots,
-        0 AS on_target,
-        0 AS offsides,
-        0 AS fouls
-    FROM teams t
-    JOIN matches m ON (m.home_team_id = t.team_id OR m.away_team_id = t.team_id)
-    JOIN scores s ON m.match_id = s.match_id
-    WHERE m.competition_id = %s
-    GROUP BY t.short_name
-    ORDER BY t.short_name ASC
-        """
-
+        query = QueryTexts.competition_stats_query
         cursor.execute(query, (competition_id,))
         stats = cursor.fetchall()
 
@@ -573,56 +262,26 @@ class Queries:
                 "goals_scored": team[4],
                 "goals_conceded": team[5],
                 "yellow_cards": team[6],  # currently 0
-                "red_cards": team[7],
-                "total_shots": team[8],
-                "on_target": team[9],
-                "offsides": team[10],
-                "fouls": team[11]
+                "red_cards": team[7],   # currently 0
+                "total_shots": team[8], # currently 0
+                "on_target": team[9],   # currently 0
+                "offsides": team[10],   # currently 0
+                "fouls": team[11]   # currently 0
             }
             result.append(team_stat)
 
         return result
 
     def get_fixtures(competition_id=None, last=2, next=2):
-        # Default competition IDs if none is provided
         default_competition_ids = [2001, 2021, 2015, 2014, 2002, 2019]
-    
-        # Use provided competition_id or default if None
         if competition_id is None:
             competition_ids = default_competition_ids
         else:
             competition_ids = [competition_id]
 
-        # Create placeholders for the query
         placeholders = ', '.join(['%s'] * len(competition_ids))
     
-        # Query to get fixtures from the past 'last' weeks, current week, and next 'next' weeks
-        query = f"""
-        SELECT
-            m.match_utc_date,
-            m.matchday,
-            t1.short_name AS home_team,
-            t2.short_name AS away_team,
-            s.full_time_home AS home_score,
-            s.full_time_away AS away_score,
-            m.competition_id,
-            m.home_team_id,
-            m.away_team_id,
-            m.match_id,
-            m.subscribed,
-            CASE 
-                WHEN m.match_utc_date < NOW() THEN 'Last Match'
-                ELSE 'Next Match'
-            END AS match_status
-        FROM matches m
-        JOIN teams t1 ON m.home_team_id = t1.team_id
-        JOIN teams t2 ON m.away_team_id = t2.team_id
-        JOIN scores s ON m.match_id = s.match_id
-        WHERE m.competition_id IN ({placeholders})
-        AND m.match_utc_date BETWEEN DATE_SUB(CURDATE(), INTERVAL %s WEEK)  -- From 'last' weeks ago
-                            AND DATE_ADD(CURDATE(), INTERVAL %s WEEK)  -- To 'next' weeks in future
-        ORDER BY m.match_utc_date ASC
-        """
+        query = QueryTexts.get_fixtures_query(placeholders)
 
         # Prepare parameters for the query
         parameters = competition_ids + [last, next]
@@ -709,30 +368,8 @@ class Queries:
         print(match_id, new_status)
         
     def get_subscribed_matches(last=2, next=3):
-        query = """
-        SELECT 
-            m.match_utc_date,
-            m.matchday,
-            t1.short_name AS home_team,
-            t2.short_name AS away_team,
-            s.full_time_home AS home_score,
-            s.full_time_away AS away_score,
-            m.competition_id,
-            m.match_id,
-            m.home_team_id,
-            m.away_team_id,
-            m.subscribed
-        FROM matches m
-        JOIN teams t1 ON m.home_team_id = t1.team_id
-        JOIN teams t2 ON m.away_team_id = t2.team_id
-        LEFT JOIN scores s ON m.match_id = s.match_id
-        WHERE m.subscribed = 'Yes' 
-        AND m.match_utc_date BETWEEN DATE_SUB(CURDATE(), INTERVAL %s WEEK)  -- From 'last' weeks ago
-                                AND DATE_ADD(CURDATE(), INTERVAL %s WEEK)  -- To 'next' weeks in future
-        ORDER BY m.match_utc_date ASC
-        """
+        query = QueryTexts.subscribed_matches_query
 
-        # Execute the query with parameters for last and next weeks
         cursor.execute(query, (last, next))
         matches = cursor.fetchall()
 

@@ -19,7 +19,7 @@ if match_count > 0:
     cursor.execute("SELECT MAX(match_utc_date) FROM matches WHERE status = 'FINISHED'")
     result = cursor.fetchone()
     earliest_date = result[0]
-    start_date = earliest_date.strftime('%Y-%m-%d')  # use last date for which database is updated
+    start_date = earliest_date.strftime('%Y-%m-%d')  
     end_date = (datetime.now() + timedelta(1)).strftime('%Y-%m-%d')
     
 else:

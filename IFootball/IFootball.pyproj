@@ -38,6 +38,9 @@
     <Compile Include="News.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="QueryTexts.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Scraper.py">
       <SubType>Code</SubType>
     </Compile>

@@ -13,22 +13,20 @@ class Custom:
     def get_competition_input(main_window):
         dialog = qtw.QDialog(main_window)
         dialog.setWindowTitle("Add Competition")
-
+        dialog.resize(main_window.size())
+        
         layout = qtw.QVBoxLayout()
 
-        # Competition name input
         name_label = qtw.QLabel("Enter Competition Name:")
         layout.addWidget(name_label)
         name_input = qtw.QLineEdit()
         layout.addWidget(name_input)
 
-        # Competition code input
         code_label = qtw.QLabel("Enter Competition Code:")
         layout.addWidget(code_label)
         code_input = qtw.QLineEdit()
         layout.addWidget(code_input)
 
-        # Number of teams input
         num_teams_label = qtw.QLabel("Enter the Number of Teams for the Competition:")
         layout.addWidget(num_teams_label)
         num_teams_input = qtw.QSpinBox()
@@ -36,12 +34,11 @@ class Custom:
         num_teams_input.setMaximum(100)
         layout.addWidget(num_teams_input)
 
-        # Competition crest selection
         crest_label = qtw.QLabel("Select Competition Crest:")
         layout.addWidget(crest_label)
         crest_button = qtw.QPushButton("Choose Crest")
         crest_path_label = qtw.QLabel("(No crest selected)")
-        crest_file = None  # Variable to store the crest file path
+        crest_file = None  
 
         def select_crest():
             nonlocal crest_file
@@ -75,14 +72,46 @@ class Custom:
 
     @staticmethod
     def create_fixtures_layout():
-        # Create and return the layout for fixtures for the given competition
         layout = qtw.QVBoxLayout()
-        # Add fixtures-related widgets and logic here
+    
+        if Custom.selected_comp_id == 4:  
+            label = qtw.QLabel("Fixtures for Fut")
+            layout.addWidget(label)
+            layout.addWidget(qtw.QLabel("Matchday 1: Team A vs Team B"))
+            layout.addWidget(qtw.QLabel("Matchday 2: Team C vs Team D"))
+        elif Custom.selected_comp_id == 7:
+            label = qtw.QLabel("Fixtures for fefe")
+            layout.addWidget(label)
+            layout.addWidget(qtw.QLabel("Matchday 1: Team E vs Team F"))
+            layout.addWidget(qtw.QLabel("Matchday 2: Team G vs Team H"))
+        else:
+            label = qtw.QLabel("Fixtures for Other Competitions")
+            layout.addWidget(label)
+            layout.addWidget(qtw.QLabel("Matchday 1: Team I vs Team J"))
+            layout.addWidget(qtw.QLabel("Matchday 2: Team K vs Team L"))
+    
         return layout
 
     @staticmethod
     def create_stats_layout():
         layout = qtw.QVBoxLayout()
+    
+        if Custom.selected_comp_id == 4:  
+            label = qtw.QLabel("Stats for FUT")
+            layout.addWidget(label)
+            layout.addWidget(qtw.QLabel("Matchday 1: Team A vs Team B"))
+            layout.addWidget(qtw.QLabel("Matchday 2: Team C vs Team D"))
+        elif Custom.selected_comp_id == 7:  
+            label = qtw.QLabel("Stats for fefe")
+            layout.addWidget(label)
+            layout.addWidget(qtw.QLabel("Matchday 1: Team E vs Team F"))
+            layout.addWidget(qtw.QLabel("Matchday 2: Team G vs Team H"))
+        else:
+            label = qtw.QLabel("Stats for Other Competitions")
+            layout.addWidget(label)
+            layout.addWidget(qtw.QLabel("Matchday 1: Team I vs Team J"))
+            layout.addWidget(qtw.QLabel("Matchday 2: Team K vs Team L"))
+    
         return layout
         
     @staticmethod
@@ -119,6 +148,7 @@ class Custom:
 
         # Create the team input dialog
         team_dialog = qtw.QDialog(main_window)
+        team_dialog.resize(main_window.size())
         team_dialog.setWindowTitle("Enter Team Details")
         team_dialog.setLayout(teams_layout)
 

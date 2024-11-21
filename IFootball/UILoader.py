@@ -461,6 +461,7 @@ class UILoader:
         main_view_layout.addLayout(top_buttons_layout)
 
         comp_buttons_layout = qtw.QHBoxLayout()
+        comp_buttons = []
         for i, comp in enumerate(competitions):
             comp_button = qtw.QPushButton(comp["competition_name"])
             cid = comp["competition_id"]
@@ -468,9 +469,10 @@ class UILoader:
             comp_button.setStyleSheet("QPushButton { text-align: center; font-size: 12px; padding: 3px 8px; }")
             comp_button.clicked.connect(lambda _, button=comp_button: (
                 setattr(UILoader, "selected_competition_id", button.property("competition_id")),
-                UILoader.switch_custom_competition(main_window, button.property("competition_id"))
+                UILoader.switch_custom_competition(main_window,comp_buttons, button)
             ))
             comp_buttons_layout.addWidget(comp_button)
+            comp_buttons.append(comp_button)
 
         main_view_layout.addLayout(comp_buttons_layout)
 
@@ -505,10 +507,8 @@ class UILoader:
         main_view_widget = qtw.QWidget()
         main_view_widget.setLayout(main_view_layout)
 
-        # Add the main view widget to the stacked layout
         stacked_layout.addWidget(main_view_widget)
 
-        # Set the stacked layout as the main layout
         main_layout.addWidget(stacked_layout)
         custom_tab.setLayout(main_layout)
 
@@ -518,8 +518,18 @@ class UILoader:
 
 
     @staticmethod
-    def switch_custom_competition(main_window, cid):
-        Custom.selected_comp_id=cid
+    def switch_custom_competition(main_window, comp_buttons, active_button):
+        Custom.selected_comp_id = active_button.property("competition_id")
+        # Iterate through each button in comp_buttons
+        main_window.reload_custom_tab()
+        print(len(comp_buttons))
+        for button in comp_buttons:
+            # Check if the current button is the active_button
+            if button == active_button:
+                button.setStyleSheet("QPushButton { text-align: center; font-size: 12px; padding: 3px 8px; font-weight: bold; }")
+            else:
+                button.setStyleSheet("QPushButton { text-align: center; font-size: 12px; padding: 3px 8px; font-weight: normal; }")
+
 
     @staticmethod
     def update_sub_tab_buttons(layout, active_index, active_button, sub_stack, should=1):

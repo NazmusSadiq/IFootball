@@ -1,5 +1,6 @@
 import mysql.connector
 import random
+from QueryTexts import QueryTexts
 from datetime import datetime, timedelta
 from sqlalchemy.orm import sessionmaker,declarative_base
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
@@ -60,15 +61,7 @@ class CustomQueries:
         return team_id
     
     def add_to_existing_competitions(competition):
-        query = """
-            INSERT INTO competitions (competition_id, competition_name, competition_code, competition_type, competition_emblem)
-            VALUES (%s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE 
-                competition_name=VALUES(competition_name), 
-                competition_code=VALUES(competition_code), 
-                competition_type=VALUES(competition_type), 
-                competition_emblem=VALUES(competition_emblem)
-        """
+        query = QueryTexts.add_to_existing_competition_query
         cursor = db.cursor()
         cursor.execute(query, (
             competition['id'],
