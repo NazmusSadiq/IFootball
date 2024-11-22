@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker,declarative_base
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 
         
-DATABASE_URI = 'mysql+mysqlconnector://root:210041139@localhost/IFootball'
+DATABASE_URI = 'mysql+mysqlconnector://root:4444@localhost/IFootball'
 
 Base = declarative_base()
 engine = create_engine(DATABASE_URI)
@@ -14,7 +14,7 @@ engine = create_engine(DATABASE_URI)
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="210041139",
+    password="4444",
     database="IFootball"
 )
 cursor = db.cursor()

@@ -30,7 +30,8 @@ class Matches:
         match_layout = qtw.QGridLayout()
 
         # Date Label
-        date_label = qtw.QLabel(f"{match['match_date']}")
+        formatted_date_time = match['match_date'].strftime("%Y-%m-%d") #added only to show date. caannot fit time as window gets large
+        date_label = qtw.QLabel(f"{formatted_date_time}")
         date_label.setMinimumWidth(Matches.column_widths["Date"])
         match_layout.addWidget(date_label, 0, 0, alignment=qtc.Qt.AlignLeft)
 
