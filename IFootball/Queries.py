@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="210041139",
+    password="4444",
     database="IFootball"
 )
 cursor = db.cursor()
@@ -421,6 +421,23 @@ class Queries:
                 break
 
         # You can add more matches to matches_to_show here if needed in the future
+            comp_ids = [2001, 2021, 2014, 2002, 2019, 2015]
+            for comp_id in comp_ids:
+                next_match = Queries.get_comp_next_match(comp_id)
+                prev_match = Queries.get_comp_prev_match(comp_id)
+                    # Handle None cases
+                if next_match is None and prev_match is None:
+                    continue  # Skip if both are None
+                elif next_match is None:
+                    matches_to_show.append(prev_match)  # If next_match is None, add prev_match
+                elif prev_match is None:
+                    matches_to_show.append(next_match)  # If prev_match is None, add next_match
+                else:
+                    # print(next_match["match_date"])
+                    if next_match["match_date"] - datetime.now() < datetime.now() - prev_match["match_date"]: #checks for more recent one
+                        matches_to_show.append(next_match)
+                    else:
+                        matches_to_show.append(prev_match)
 
         result = []
         for match in matches_to_show:
@@ -571,3 +588,52 @@ class Queries:
 
         return result
     
+    def get_comp_next_match(comp_id):
+        query = QueryTexts.comp_next_match_query
+        cursor.execute(query, (datetime.now(),comp_id))
+        fixture = cursor.fetchone()
+        if fixture:
+            fixture_data = {
+                "match_id": fixture[0],
+                "home_team": fixture[1],
+                "away_team": fixture[2],
+                "home_score": fixture[3],  
+                "away_score": fixture[4],  
+                "match_date": fixture[5],  
+                "competition": fixture[6],  
+                "matchday": fixture[7],
+                "home_team_id": fixture[8],
+                "away_team_id": fixture[9],
+                "subscribed": fixture[10],
+                "competition_id": fixture[11]
+            }
+            # print("Next Match:", fixture_data)
+            return fixture_data
+        else:
+            print("No Next match found for " + str(comp_id))
+            return None
+
+# Function to get the immediate previous match
+    def get_comp_prev_match(comp_id):
+        query = QueryTexts.comp_previous_match_query
+        cursor.execute(query, (comp_id,))
+        fixture = cursor.fetchone()
+        if fixture:
+            fixture_data = {
+                "match_id": fixture[0],
+                "home_team": fixture[1],
+                "away_team": fixture[2],
+                "home_score": fixture[3] ,  
+                "away_score": fixture[4] ,  
+                "match_date": fixture[5],  
+                "competition": fixture[6],  
+                "matchday": fixture[7],
+                "home_team_id": fixture[8],
+                "away_team_id": fixture[9],
+                "subscribed": fixture[10],
+                "competition_id":fixture[11]
+            }
+            return fixture_data
+        else:
+            print("No Previous match found for " + str(comp_id))
+            return None

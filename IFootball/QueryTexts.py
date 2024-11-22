@@ -300,3 +300,51 @@ class QueryTexts:
                 competition_type=VALUES(competition_type), 
                 competition_emblem=VALUES(competition_emblem)
         """
+    
+    comp_previous_match_query = """
+             SELECT 
+            m.match_id, 
+            t1.short_name AS home_team, 
+            t2.short_name AS away_team, 
+            s.full_time_home, 
+            s.full_time_away, 
+            m.match_utc_date, 
+            c.competition_name,
+            m.matchday,
+            m.home_team_id,
+            m.away_team_id,
+            m.subscribed,
+            m.competition_id           
+        FROM matches m
+        JOIN teams t1 ON m.home_team_id = t1.team_id
+        JOIN teams t2 ON m.away_team_id = t2.team_id
+        LEFT JOIN scores s ON m.match_id = s.match_id
+        JOIN competitions c ON m.competition_id = c.competition_id
+            WHERE m.match_utc_date < NOW() and m.competition_id = %s
+            ORDER BY m.match_utc_date DESC
+            LIMIT 1;
+        """  
+
+    comp_next_match_query = """
+            SELECT 
+            m.match_id, 
+            t1.short_name AS home_team, 
+            t2.short_name AS away_team, 
+            s.full_time_home, 
+            s.full_time_away, 
+            m.match_utc_date, 
+            c.competition_name,  
+            m.matchday,
+            m.home_team_id,
+            m.away_team_id,
+            m.subscribed,
+            m.competition_id          
+        FROM matches m
+        JOIN teams t1 ON m.home_team_id = t1.team_id
+        JOIN teams t2 ON m.away_team_id = t2.team_id
+        LEFT JOIN scores s ON m.match_id = s.match_id
+        JOIN competitions c ON m.competition_id = c.competition_id
+            WHERE m.match_utc_date > %s AND c.competition_id = %s
+            ORDER BY m.match_utc_date DESC
+            LIMIT 1;
+        """
