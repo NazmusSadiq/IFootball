@@ -192,7 +192,51 @@ class QueryTexts:
         GROUP BY t.short_name
         ORDER BY points DESC, goal_difference DESC, goals_scored DESC
         """
-        
+       
+    custom_competition_standings_query = """
+        SELECT 
+            t.team_name,
+            COALESCE(SUM(CASE 
+                WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR 
+                     (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 3 
+                WHEN s.full_time_home = s.full_time_away THEN 1 
+                ELSE 0 
+            END), 0) AS points,
+            COALESCE(SUM(CASE 
+                WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR 
+                     (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 1 
+                ELSE 0 
+            END), 0) AS wins,
+            COALESCE(SUM(CASE WHEN s.full_time_home = s.full_time_away THEN 1 ELSE 0 END), 0) AS draws,
+            COALESCE(SUM(CASE 
+                WHEN (m.home_team_id = t.team_id AND s.full_time_home < s.full_time_away) OR 
+                     (m.away_team_id = t.team_id AND s.full_time_away < s.full_time_home) THEN 1 
+                ELSE 0 
+            END), 0) AS losses,
+            COALESCE(SUM(CASE 
+                WHEN m.home_team_id = t.team_id THEN s.full_time_home 
+                ELSE s.full_time_away 
+            END), 0) AS goals_scored,
+            COALESCE(SUM(CASE 
+                WHEN m.home_team_id = t.team_id THEN s.full_time_away 
+                ELSE s.full_time_home 
+            END), 0) AS goals_conceded,
+            COALESCE(SUM(CASE 
+                WHEN m.home_team_id = t.team_id THEN s.full_time_home 
+                ELSE s.full_time_away 
+            END), 0) - 
+            COALESCE(SUM(CASE 
+                WHEN m.home_team_id = t.team_id THEN s.full_time_away 
+                ELSE s.full_time_home 
+            END), 0) AS goal_difference
+        FROM custom_teams t
+        LEFT JOIN custom_matches m ON (m.home_team_id = t.team_id OR m.away_team_id = t.team_id) AND m.competition_id = %s
+        LEFT JOIN scores s ON m.match_id = s.match_id
+        WHERE t.competition_id = %s
+        GROUP BY t.team_name
+        ORDER BY points DESC, goal_difference DESC, goals_scored DESC
+    """
+
     competition_standings_near_team_query = """
         SELECT 
             t.team_id,
@@ -329,52 +373,4 @@ class QueryTexts:
                 competition_code=VALUES(competition_code), 
                 competition_type=VALUES(competition_type), 
                 competition_emblem=VALUES(competition_emblem)
-        """
-    
-    comp_previous_match_query = """
-             SELECT 
-            m.match_id, 
-            t1.short_name AS home_team, 
-            t2.short_name AS away_team, 
-            s.full_time_home, 
-            s.full_time_away, 
-            m.match_utc_date, 
-            c.competition_name,
-            m.matchday,
-            m.home_team_id,
-            m.away_team_id,
-            m.subscribed,
-            m.competition_id           
-        FROM matches m
-        JOIN teams t1 ON m.home_team_id = t1.team_id
-        JOIN teams t2 ON m.away_team_id = t2.team_id
-        LEFT JOIN scores s ON m.match_id = s.match_id
-        JOIN competitions c ON m.competition_id = c.competition_id
-            WHERE m.match_utc_date < NOW() and m.competition_id = %s
-            ORDER BY m.match_utc_date DESC
-            LIMIT 1;
-        """  
-
-    comp_next_match_query = """
-            SELECT 
-            m.match_id, 
-            t1.short_name AS home_team, 
-            t2.short_name AS away_team, 
-            s.full_time_home, 
-            s.full_time_away, 
-            m.match_utc_date, 
-            c.competition_name,  
-            m.matchday,
-            m.home_team_id,
-            m.away_team_id,
-            m.subscribed,
-            m.competition_id          
-        FROM matches m
-        JOIN teams t1 ON m.home_team_id = t1.team_id
-        JOIN teams t2 ON m.away_team_id = t2.team_id
-        LEFT JOIN scores s ON m.match_id = s.match_id
-        JOIN competitions c ON m.competition_id = c.competition_id
-            WHERE m.match_utc_date > %s AND c.competition_id = %s
-            ORDER BY m.match_utc_date DESC
-            LIMIT 1;
         """

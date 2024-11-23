@@ -150,7 +150,6 @@ class Favorite:
 
             # Add team statistics
             stats_layout.addWidget(qtw.QLabel(f"Team Stats for {favorite_team}:"))          
-            
             if team_stats:
                 for index, stat in enumerate(team_stats):
                     stats_layout.addWidget(qtw.QLabel(f"Competition: {stat['competition']}"))
@@ -281,9 +280,9 @@ class Favorite:
     @staticmethod
     def create_sub_tab_stats(layout, stats):
 
+        Favorite.create_headers(layout)
+        layout.addSpacing(10)
         if stats:
-            Favorite.create_headers(layout)
-            layout.addSpacing(10)
 
             if isinstance(stats, list):  
                 for stat in stats:

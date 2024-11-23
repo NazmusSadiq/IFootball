@@ -98,7 +98,7 @@ class UILoader:
         content_widget = qtw.QWidget()
         content_layout = qtw.QVBoxLayout(content_widget)
         
-        content_widget.setSizePolicy(qtw.QSizePolicy.Fixed, qtw.QSizePolicy.Expanding)
+        content_widget.setSizePolicy(qtw.QSizePolicy.Expanding, qtw.QSizePolicy.Expanding)
         content_widget.setMinimumWidth(scroll_area.viewport().width())  
 
         UILoader.create_recent_matches_section(content_layout)
@@ -121,8 +121,8 @@ class UILoader:
         news_scroll_area.setWidget(news_section_widget)
         
         # Set news widget to be vertically resizable but fixed in width
-        news_section_widget.setSizePolicy(qtw.QSizePolicy.Fixed, qtw.QSizePolicy.Expanding)
-        news_section_widget.setMaximumWidth(news_scroll_area.viewport().width())
+        news_section_widget.setSizePolicy(qtw.QSizePolicy.Expanding, qtw.QSizePolicy.Expanding)
+        news_section_widget.setMinimumWidth(news_scroll_area.viewport().width())
 
         content_layout.addWidget(news_scroll_area)
 
@@ -154,12 +154,12 @@ class UILoader:
         # Add subtabs with match data from matches.py
         sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures()))  # Main for now
         sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_subscribed_matches()))  # Subscribed 
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2001,2,4)))  # UCL
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2021,2,4)))  # EPL
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2014,2,4)))  # La Liga
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2002,2,4)))  # Bundesliga
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2019,2,4)))  # Serie A
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2015,2,4)))  # Ligue 1
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2001,3,4)))  # UCL
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2021,3,4)))  # EPL
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2014,3,4)))  # La Liga
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2002,3,4)))  # Bundesliga
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2019,3,4)))  # Serie A
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2015,3,4)))  # Ligue 1
 
         section_layout.addWidget(sub_stack)
 
@@ -462,11 +462,19 @@ class UILoader:
 
         comp_buttons_layout = qtw.QHBoxLayout()
         comp_buttons = []
+        selected_button = None
+        selected = Custom.selected_comp_id
         for i, comp in enumerate(competitions):
             comp_button = qtw.QPushButton(comp["competition_name"])
             cid = comp["competition_id"]
+            if (i==0 and selected == None) or selected == cid:
+                selected_button = comp_button   
             comp_button.setProperty("competition_id", cid)
             comp_button.setStyleSheet("QPushButton { text-align: center; font-size: 12px; padding: 3px 8px; }")
+            emblem_path = comp["competition_emblem"]
+            if emblem_path:  # Check if the emblem path is valid
+                comp_button.setIcon(qtg.QIcon(emblem_path))
+                comp_button.setIconSize(qtc.QSize(16, 16))
             comp_button.clicked.connect(lambda _, button=comp_button: (
                 setattr(UILoader, "selected_competition_id", button.property("competition_id")),
                 UILoader.switch_custom_competition(main_window,comp_buttons, button)
@@ -475,7 +483,9 @@ class UILoader:
             comp_buttons.append(comp_button)
 
         main_view_layout.addLayout(comp_buttons_layout)
-
+        if selected_button != None:
+            UILoader.switch_custom_competition(main_window,comp_buttons,selected_button, False)
+        
         fixture_layout = Custom.create_fixtures_layout()
         stats_layout = Custom.create_stats_layout()
 
@@ -518,11 +528,10 @@ class UILoader:
 
 
     @staticmethod
-    def switch_custom_competition(main_window, comp_buttons, active_button):
+    def switch_custom_competition(main_window, comp_buttons, active_button,should_reload = True):
         Custom.selected_comp_id = active_button.property("competition_id")
-        # Iterate through each button in comp_buttons
-        main_window.reload_custom_tab()
-        print(len(comp_buttons))
+        if should_reload == True:            
+            main_window.reload_custom_tab()
         for button in comp_buttons:
             # Check if the current button is the active_button
             if button == active_button:

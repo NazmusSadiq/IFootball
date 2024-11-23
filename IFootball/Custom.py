@@ -3,11 +3,72 @@ from PyQt5.sip import delete
 import requests
 from CustomQueries import CustomQueries
 from PyQt5 import QtWidgets as qtw
-from PyQt5.QtCore import Qt
+from PyQt5 import QtCore as qtc
 from PyQt5.QtWidgets import QFileDialog, QInputDialog, QMessageBox
 
 class Custom:
-    selected_comp_id=0 
+    column_widths = {
+        "Matchday": 120,
+        "Home": 150,
+        "Score": 100,
+        "Away": 150,
+        "": 70
+    }
+    selected_comp_id= None
+
+    @staticmethod
+    def create_headers(layout):
+        header_layout = qtw.QGridLayout()
+        headers = ["Matchday","Home", "Score", "Away", ""]
+        header_layout.setContentsMargins(35, 0, 0, 0)
+
+        for idx, header in enumerate(headers):
+            label = qtw.QLabel(header)
+            label.setFixedWidth(Custom.column_widths.get(header, 50))
+            if header in ["Score"]:
+                label.setContentsMargins(35, 0, 0, 0)
+            if header in ["Away"]:
+                label.setContentsMargins(55, 0, 0, 0)
+            header_layout.addWidget(label, 0, idx, alignment=qtc.Qt.AlignCenter)
+
+        layout.addLayout(header_layout)
+
+    @staticmethod
+    def create_custom_match_row(layout, match):
+        match_layout = qtw.QGridLayout()
+        
+        round_label = qtw.QLabel(f"{match['matchday']}")
+        round_label.setMinimumWidth(Custom.column_widths["Matchday"])
+        round_label.setContentsMargins(50, 0, 0, 0)
+        match_layout.addWidget(round_label, 0, 0, alignment=qtc.Qt.AlignLeft)
+        
+        home_team_layout = qtw.QHBoxLayout()
+        home_team_layout.addWidget(CustomQueries.get_team_crest(match['home_team_id']))
+        home_team_label = qtw.QLabel(f"{match['home_team']}")
+        home_team_label.setMinimumWidth(Custom.column_widths["Home"])
+        home_team_layout.addWidget(home_team_label)
+        home_team_layout.setContentsMargins(20, 0, 0, 0)
+        match_layout.addLayout(home_team_layout, 0, 1)
+
+        home_score = match['home_score']
+        away_score = match['away_score']
+        score_display = (
+            f"{home_score} : {away_score}"
+            if home_score is not None and away_score is not None and home_score >= 0 and away_score >= 0
+            else "  vs"
+        )
+        score_label = qtw.QLabel(score_display)
+        score_label.setMinimumWidth(Custom.column_widths["Score"])
+        match_layout.addWidget(score_label, 0, 2, alignment=qtc.Qt.AlignCenter)
+
+        away_team_layout = qtw.QHBoxLayout()
+        away_team_label = qtw.QLabel(match['away_team'])
+        away_team_layout.addWidget(CustomQueries.get_team_crest(match['away_team_id']))
+        away_team_label.setMinimumWidth(Custom.column_widths["Away"])
+        away_team_layout.addWidget(away_team_label)
+        match_layout.addLayout(away_team_layout, 0, 3)
+
+        layout.addLayout(match_layout)
     
     @staticmethod
     def get_competition_input(main_window):
@@ -30,8 +91,14 @@ class Custom:
         num_teams_label = qtw.QLabel("Enter the Number of Teams for the Competition:")
         layout.addWidget(num_teams_label)
         num_teams_input = qtw.QSpinBox()
-        num_teams_input.setMinimum(1)
-        num_teams_input.setMaximum(100)
+        num_teams_input.setMinimum(2)
+        num_teams_input.setMaximum(20)
+        
+        def enforce_even_number(value):
+            if value % 2 != 0:
+                num_teams_input.setValue(value + 1 if value < 20 else value - 1)
+
+        num_teams_input.valueChanged.connect(enforce_even_number)
         layout.addWidget(num_teams_input)
 
         crest_label = qtw.QLabel("Select Competition Crest:")
@@ -51,7 +118,6 @@ class Custom:
         layout.addWidget(crest_button)
         layout.addWidget(crest_path_label)
 
-        # Dialog buttons
         button_box = qtw.QDialogButtonBox(qtw.QDialogButtonBox.Ok | qtw.QDialogButtonBox.Cancel)
         layout.addWidget(button_box)
 
@@ -72,47 +138,19 @@ class Custom:
 
     @staticmethod
     def create_fixtures_layout():
-        layout = qtw.QVBoxLayout()
-    
-        if Custom.selected_comp_id == 4:  
-            label = qtw.QLabel("Fixtures for Fut")
-            layout.addWidget(label)
-            layout.addWidget(qtw.QLabel("Matchday 1: Team A vs Team B"))
-            layout.addWidget(qtw.QLabel("Matchday 2: Team C vs Team D"))
-        elif Custom.selected_comp_id == 7:
-            label = qtw.QLabel("Fixtures for fefe")
-            layout.addWidget(label)
-            layout.addWidget(qtw.QLabel("Matchday 1: Team E vs Team F"))
-            layout.addWidget(qtw.QLabel("Matchday 2: Team G vs Team H"))
-        else:
-            label = qtw.QLabel("Fixtures for Other Competitions")
-            layout.addWidget(label)
-            layout.addWidget(qtw.QLabel("Matchday 1: Team I vs Team J"))
-            layout.addWidget(qtw.QLabel("Matchday 2: Team K vs Team L"))
-    
-        return layout
+        fixtures_layout = qtw.QVBoxLayout()
+        Custom.create_sub_tab_match(fixtures_layout)
+        fixtures_layout.addStretch()
+        return fixtures_layout
 
     @staticmethod
     def create_stats_layout():
-        layout = qtw.QVBoxLayout()
-    
-        if Custom.selected_comp_id == 4:  
-            label = qtw.QLabel("Stats for FUT")
-            layout.addWidget(label)
-            layout.addWidget(qtw.QLabel("Matchday 1: Team A vs Team B"))
-            layout.addWidget(qtw.QLabel("Matchday 2: Team C vs Team D"))
-        elif Custom.selected_comp_id == 7:  
-            label = qtw.QLabel("Stats for fefe")
-            layout.addWidget(label)
-            layout.addWidget(qtw.QLabel("Matchday 1: Team E vs Team F"))
-            layout.addWidget(qtw.QLabel("Matchday 2: Team G vs Team H"))
-        else:
-            label = qtw.QLabel("Stats for Other Competitions")
-            layout.addWidget(label)
-            layout.addWidget(qtw.QLabel("Matchday 1: Team I vs Team J"))
-            layout.addWidget(qtw.QLabel("Matchday 2: Team K vs Team L"))
-    
-        return layout
+        from Favorite import Favorite
+        stats_layout = qtw.QVBoxLayout()  
+        Favorite.create_sub_tab_stats(stats_layout, CustomQueries.get_competition_standings(Custom.selected_comp_id))                   
+        stats_layout.addStretch()
+        return stats_layout
+
         
     @staticmethod
     def add_new_competition(main_window, main_layout):
@@ -180,6 +218,10 @@ class Custom:
         team_data[idx]['name'] = name
 
     @staticmethod
+    def create_new_fixture():
+        CustomQueries.create_new_fixture(Custom.selected_comp_id)
+
+    @staticmethod
     def confirm_add_competition(main_window, competition_name, competition_code, competition_crest, team_data, main_layout, team_dialog):
         if not competition_name or not competition_code or not competition_crest:
             QMessageBox.warning(main_window, "Invalid Input", "Competition name, code, and crest are required.")
@@ -201,6 +243,7 @@ class Custom:
         }
 
         try:
+            Custom.selected_comp_id = competition_id
             CustomQueries.add_to_existing_competitions(competition)
 
             for team in team_data:
@@ -211,11 +254,11 @@ class Custom:
                 }
                 CustomQueries.add_team_to_competition(team_info)
 
+            Custom.create_new_fixture()
             QMessageBox.information(main_window, "Success", f"Competition '{competition_name}' with {len(team_data)} teams added successfully!")
 
-            # Reload main view (fixtures and stats)
             main_window.reload_custom_tab()
-            team_dialog.accept()  # Close the team details dialog after success
+            team_dialog.accept()  
 
         except Exception as e:
             QMessageBox.critical(main_window, "Error", f"Failed to add competition: {str(e)}")
@@ -224,6 +267,7 @@ class Custom:
     @staticmethod
     def delete_competition(main_window):
         CustomQueries.delete_competition(Custom.selected_comp_id)
+        Custom.selected_comp_id = None
         main_window.reload_custom_tab()
         
     @staticmethod
@@ -241,3 +285,32 @@ class Custom:
 
         stacked_layout.addWidget(modify_widget)
         stacked_layout.setCurrentWidget(modify_widget)
+        
+    @staticmethod
+    def create_sub_tab_match(fixtures_layout):
+        widget = qtw.QWidget()
+        layout = qtw.QVBoxLayout()
+    
+        matches = CustomQueries.get_fixtures(Custom.selected_comp_id)
+
+        Custom.create_headers(fixtures_layout)
+
+        if matches:
+            if isinstance(matches, list): 
+                team_rank = 1
+                for match in matches:
+                    if isinstance(match, dict):
+                        Custom.create_custom_match_row(fixtures_layout, match)          
+                    else:
+                        print(f"Unexpected stat format: {match}")
+                        stat_label = qtw.QLabel("Invalid stat format")
+                        layout.addWidget(stat_label)
+            else:
+                print(f"Unexpected stat structure for team stats:")
+        else:
+            no_match_label = qtw.QLabel("No matches available")
+            layout.addWidget(no_match_label)
+    
+        widget.setLayout(layout)
+        return widget
+
