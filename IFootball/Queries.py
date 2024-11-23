@@ -379,17 +379,32 @@ class Queries:
         
         matches = Queries.get_subscribed_matches()
         current_date = datetime.utcnow()
-        matches_to_show = []    #add which matches to be shown in this
+        matches_to_show = []    
         
         for match in matches:
             match_date = match["match_date"]
             if match_date < current_date and len(matches_to_show) == 0:
-                matches_to_show.append(match)   #last match of fav_team
+                matches_to_show.append(match)   
             elif match_date >= current_date:
-                matches_to_show.append(match)   #next match of fav_team
+                matches_to_show.append(match)   
                 break
 
-        # You can add more matches to matches_to_show here if needed in the future
+            comp_ids = [2001, 2021, 2014, 2002, 2019, 2015]
+            for comp_id in comp_ids:
+                next_match = Queries.get_comp_next_match(comp_id)
+                prev_match = Queries.get_comp_prev_match(comp_id)
+               
+                if next_match is None and prev_match is None:
+                    continue  
+                elif next_match is None:
+                    matches_to_show.append(prev_match)  
+                elif prev_match is None:
+                    matches_to_show.append(next_match)  
+                else:
+                    if next_match["match_date"] - datetime.now() < datetime.now() - prev_match["match_date"]: 
+                        matches_to_show.append(next_match)
+                    else:
+                        matches_to_show.append(prev_match)
 
         result = []
         for match in matches_to_show:
@@ -409,11 +424,14 @@ class Queries:
             else:
                 competition_name = "Unknown"
 
-            #appended_matchday = f"{competition_name} R{match['matchday']}"
+            if str(match['matchday'])[0].isdigit():
+                appended_matchday = f"{competition_name} R{match['matchday']}"
+            else:
+                appended_matchday = match['matchday']
 
             fixture_data = {
                 "match_date": match["match_date"],
-                "matchday": match["matchday"],
+                "matchday": appended_matchday,
                 "home_team": match["home_team"],
                 "away_team": match["away_team"],
                 "home_score": match["home_score"],
@@ -540,3 +558,51 @@ class Queries:
 
         return result
     
+    def get_comp_next_match(comp_id):
+        query = QueryTexts.comp_next_match_query
+        cursor.execute(query, (datetime.now(),comp_id))
+        fixture = cursor.fetchone()
+        if fixture:
+            fixture_data = {
+                "match_id": fixture[0],
+                "home_team": fixture[1],
+                "away_team": fixture[2],
+                "home_score": fixture[3],  
+                "away_score": fixture[4],  
+                "match_date": fixture[5],  
+                "competition": fixture[6],  
+                "matchday": fixture[7],
+                "home_team_id": fixture[8],
+                "away_team_id": fixture[9],
+                "subscribed": fixture[10],
+                "competition_id": fixture[11]
+            }
+            # print("Next Match:", fixture_data)
+            return fixture_data
+        else:
+            print("No Next match found for " + str(comp_id))
+            return None
+        
+    def get_comp_prev_match(comp_id):
+        query = QueryTexts.comp_previous_match_query
+        cursor.execute(query, (comp_id,))
+        fixture = cursor.fetchone()
+        if fixture:
+            fixture_data = {
+                "match_id": fixture[0],
+                "home_team": fixture[1],
+                "away_team": fixture[2],
+                "home_score": fixture[3] ,  
+                "away_score": fixture[4] ,  
+                "match_date": fixture[5],  
+                "competition": fixture[6],  
+                "matchday": fixture[7],
+                "home_team_id": fixture[8],
+                "away_team_id": fixture[9],
+                "subscribed": fixture[10],
+                "competition_id":fixture[11]
+            }
+            return fixture_data
+        else:
+            print("No Previous match found for " + str(comp_id))
+            return None
