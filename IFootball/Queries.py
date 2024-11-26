@@ -230,12 +230,12 @@ class Queries:
                 "matches_played": team[1]+team[2]+team[3],
                 "goals_scored": team[4],
                 "goals_conceded": team[5],
-                "yellow_cards": team[6],  # currently 0
-                "red_cards": team[7],   # currently 0
-                "total_shots": team[8], # currently 0
-                "on_target": team[9],   # currently 0
-                "offsides": team[10],   # currently 0
-                "fouls": team[11]   # currently 0
+                "yellow_cards": team[6], 
+                "red_cards": team[7],   
+                "total_shots": team[8], 
+                "on_target": team[9],   
+                "offsides": team[10],   
+                "fouls": team[11]   
             }
             result.append(team_stat)
 
@@ -460,6 +460,7 @@ class Queries:
         query_top_scorers = """
         SELECT 
             ps.player_name,
+            MAX(ps.team_name),
             SUM(ps.goals) AS total_goals
         FROM player_stats ps
         WHERE ps.competition_id = %s
@@ -473,13 +474,15 @@ class Queries:
         for player in top_scorers:
             result["top_scorers"].append({
                 "player_name": player[0],
-                "total_goals": player[1]
+                "total_goals": player[2],
+                "team_name": player[1]
             })
 
         # Query for top assist providers
         query_top_assists = """
         SELECT 
             ps.player_name,
+            MAX(ps.team_name),
             SUM(ps.assists) AS total_assists
         FROM player_stats ps
         WHERE ps.competition_id = %s
@@ -493,13 +496,15 @@ class Queries:
         for player in top_assist_providers:
             result["top_assist_providers"].append({
                 "player_name": player[0],
-                "total_assists": player[1]
+                "total_assists": player[2],
+                "team_name": player[1]
             })
 
         # Query for top yellow card recipients
         query_top_yellow_cards = """
         SELECT 
             ps.player_name,
+            MAX(ps.team_name),
             SUM(ps.yellow_cards) AS total_yellow_cards
         FROM player_stats ps
         WHERE ps.competition_id = %s
@@ -513,13 +518,15 @@ class Queries:
         for player in top_yellow_card_recipients:
             result["top_yellow_card_recipients"].append({
                 "player_name": player[0],
-                "total_yellow_cards": player[1]
+                "total_yellow_cards": player[2],
+                "team_name": player[1]
             })
 
         # Query for top red card recipients
         query_top_red_cards = """
         SELECT 
             ps.player_name,
+            MAX(ps.team_name),
             SUM(ps.red_cards) AS total_red_cards
         FROM player_stats ps
         WHERE ps.competition_id = %s
@@ -533,13 +540,15 @@ class Queries:
         for player in top_red_card_recipients:
             result["top_red_card_recipients"].append({
                 "player_name": player[0],
-                "total_red_cards": player[1]
+                "total_red_cards": player[2],
+                "team_name": player[1]
             })
 
         # Query for top clean sheet providers
         query_top_clean_sheets = """
         SELECT 
             ps.player_name,
+            MAX(ps.team_name),
             SUM(ps.clean_sheets) AS total_clean_sheets
         FROM player_stats ps
         WHERE ps.competition_id = %s
@@ -553,7 +562,8 @@ class Queries:
         for player in top_clean_sheet_providers:
             result["top_clean_sheet_providers"].append({
                 "player_name": player[0],
-                "total_clean_sheets": player[1]
+                "total_clean_sheets": player[2],
+                "team_name": player[1]
             })
 
         return result

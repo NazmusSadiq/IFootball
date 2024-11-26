@@ -406,6 +406,6 @@ class CustomQueries:
 
         except Exception as e:
             print(f"Error fetching fixtures: {e}")
-            return []     
+            return [] 
 
 Base.metadata.create_all(engine)

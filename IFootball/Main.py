@@ -6,7 +6,7 @@ import PyQt5.QtGui as qtg
 import PyQt5.QtCore as qtc
 from UILoader import UILoader 
 from Queries import Queries
-#import API_Call
+import API_Call
 #import Scraper
 from Matches import Matches
 
@@ -15,7 +15,7 @@ class MainWindow(qtw.QWidget):
         super().__init__()
 
         self.setWindowTitle("IFootball")
-        self.setGeometry(400, 100, 600, 900)
+        self.setGeometry(600, 30, 600, 1010)
         self.setLayout(qtw.QVBoxLayout())
 
         self.stack = qtw.QStackedWidget(self)
@@ -27,7 +27,6 @@ class MainWindow(qtw.QWidget):
         self.stats_tab = UILoader.create_stats_tab(self)
         self.custom_tab = UILoader.create_custom_tab(self)  
 
-        # Add these widgets to the stack
         self.stack.addWidget(self.home_tab)
         self.stack.addWidget(self.match_tab)
         self.stack.addWidget(self.favorite_tab)
@@ -36,7 +35,6 @@ class MainWindow(qtw.QWidget):
 
         self.layout().addWidget(self.stack)
 
-        # Tab bar with buttons
         self.tab_bar_layout = qtw.QHBoxLayout()
         self.home_button = UILoader.create_bottom_tab(self, "Home", "Images/home_uc.png", "Images/home_c.png")
         self.match_button = UILoader.create_bottom_tab(self, "Match", "Images/whistle_uc.png", "Images/whistle_c.png")
@@ -44,7 +42,7 @@ class MainWindow(qtw.QWidget):
         crest_pixmap = Matches.get_team_crest(fav_id, 1)
         self.favorite_button = UILoader.create_bottom_tab(self, "Favorite", crest_pixmap, crest_pixmap)
         self.stats_button = UILoader.create_bottom_tab(self, "Stats", "Images/stats_uc.png", "Images/stats_c.png")
-        self.custom_button = UILoader.create_bottom_tab(self, "Custom", "Images/custom_uc.png", "Images/custom_c.png")  # New button for custom tab
+        self.custom_button = UILoader.create_bottom_tab(self, "Custom", "Images/custom_uc.png", "Images/custom_c.png")  
 
         self.tab_bar_layout.addWidget(self.home_button)
         self.tab_bar_layout.addWidget(self.match_button)
@@ -87,7 +85,7 @@ class MainWindow(qtw.QWidget):
         button.setIcon(qtg.QIcon(button.icon_path_default))
         button.setStyleSheet("QPushButton { text-align: center; color: grey; }")
 
-    def reload_tabs_after_new_fav_team(self,tab_id):
+    def reload_tabs_after_changes(self,tab_id):
         for i in reversed(range(self.stack.count())):
             widget = self.stack.widget(i)
             if widget:
@@ -106,7 +104,10 @@ class MainWindow(qtw.QWidget):
         self.stack.addWidget(self.stats_tab)
         self.stack.addWidget(self.custom_tab)
 
-        if tab_id==2:
+        if tab_id==1:
+            self.update_active_tab(self.match_button, 1)
+            self.stack.setCurrentWidget(self.match_tab) 
+        elif tab_id==2:
             self.update_active_tab(self.favorite_button, 2)
             self.stack.setCurrentWidget(self.favorite_tab) 
         

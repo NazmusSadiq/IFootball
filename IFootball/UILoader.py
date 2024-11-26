@@ -17,6 +17,9 @@ FAVORITE_TEAM_FILE = "favorite_team.json"
 
 class UILoader:
     
+    current_match_tab_idx = 0
+    should_reload_for_subscribed = False
+    
     @staticmethod
     def clear_section(layout,num = 0):
  
@@ -180,29 +183,36 @@ class UILoader:
         for i, name in enumerate(buttons):
             btn = qtw.QPushButton(name)
             btn.setStyleSheet("QPushButton { text-align: center; }")
-            btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(sub_tab_bar_layout, idx, btn, sub_stack))
+            btn.clicked.connect(lambda _, idx=i: UILoader.update_sub_tab_buttons(sub_tab_bar_layout, idx, btn, sub_stack,1,main_window))
             sub_tab_bar_layout.addWidget(btn)
 
         # Insert the sub-tab buttons at the top of the layout
         main_layout.insertLayout(0, sub_tab_bar_layout)
 
         # Set the default selection for the match sub-tab (Main)
-        UILoader.update_sub_tab_buttons(sub_tab_bar_layout, 0, sub_tab_bar_layout.itemAt(0).widget(), sub_stack)
+        UILoader.update_sub_tab_buttons(sub_tab_bar_layout, UILoader.current_match_tab_idx, sub_tab_bar_layout.itemAt(UILoader.current_match_tab_idx).widget(), sub_stack)
 
         match_tab.setLayout(main_layout)
 
         return match_tab
-    
 
     @staticmethod
-    def update_sub_tab_buttons(layout, active_index, active_button, sub_stack):
+    def update_sub_tab_buttons(layout, active_index, active_button, sub_stack, not_stats=1,main_window=None):
         for i in range(layout.count()):
             button = layout.itemAt(i).widget()
-            if i == active_index:
-                button.setStyleSheet("QPushButton { text-align: center; font-weight: bold; }")  
+            if not_stats==0:
+                sub_index=active_index
+            if i == active_index: 
+                button.setStyleSheet("QPushButton { text-align: center; font-weight: bold; }")
             else:
-                button.setStyleSheet("QPushButton { text-align: center; }") 
+                button.setStyleSheet("QPushButton { text-align: center; }")
+                
+        UILoader.current_match_tab_idx = active_index
         sub_stack.setCurrentIndex(active_index)
+        
+        if main_window != None and active_index == 1 and UILoader.should_reload_for_subscribed:
+            UILoader.should_reload_for_subscribed = False
+            main_window.reload_tabs_after_changes(1)
 
     # Create Stats tab content with different subtabs
     @staticmethod
@@ -315,15 +325,15 @@ class UILoader:
 
                         for player_stat in player_stats:
                             if category == "top_scorers":
-                                stat_label = f"{player_stat['player_name']}    Goals: {player_stat['total_goals']}"
+                                stat_label = f"{player_stat['player_name']}     Team: {player_stat['team_name']}    Goals: {player_stat['total_goals']}"
                             elif category == "top_assist_providers":
-                                stat_label = f"{player_stat['player_name']}    Assists: {player_stat['total_assists']}"
+                                stat_label = f"{player_stat['player_name']}     Team: {player_stat['team_name']}    Assists: {player_stat['total_assists']}"
                             elif category == "top_yellow_card_recipients":
-                                stat_label = f"{player_stat['player_name']}    Yellow Cards: {player_stat['total_yellow_cards']}"
+                                stat_label = f"{player_stat['player_name']}     Team: {player_stat['team_name']}    Yellow Cards: {player_stat['total_yellow_cards']}"
                             elif category == "top_red_card_recipients":
-                                stat_label = f"{player_stat['player_name']}    Red Cards: {player_stat['total_red_cards']}"
+                                stat_label = f"{player_stat['player_name']}     Team: {player_stat['team_name']}    Red Cards: {player_stat['total_red_cards']}"
                             elif category == "top_clean_sheet_providers":
-                                stat_label = f"{player_stat['player_name']}    Clean Sheets: {player_stat['total_clean_sheets']}"
+                                stat_label = f"{player_stat['player_name']}     Team: {player_stat['team_name']}    Clean Sheets: {player_stat['total_clean_sheets']}"
                         
                             layout.addWidget(qtw.QLabel(stat_label))
                         layout.addSpacing(10)
@@ -541,18 +551,6 @@ class UILoader:
 
 
     @staticmethod
-    def update_sub_tab_buttons(layout, active_index, active_button, sub_stack, should=1):
-        for i in range(layout.count()):
-            button = layout.itemAt(i).widget()
-            if should==0:
-                sub_index=active_index
-            if i == active_index: 
-                button.setStyleSheet("QPushButton { text-align: center; font-weight: bold; }")
-            else:
-                button.setStyleSheet("QPushButton { text-align: center; }")
-        sub_stack.setCurrentIndex(active_index)
-
-    @staticmethod
     def change_favorite_team(main_window, main_layout):
         o_fav_id= Queries.fav_team_id
         Favorite.prompt_set_favorite_team(main_window)
@@ -568,7 +566,7 @@ class UILoader:
         Queries.set_fav_team_matches_as_subscribed(old_id,1)
         Queries.set_fav_team_matches_as_subscribed(n_fav_id)
         if hasattr(main_window, 'favorite_button') and main_window.favorite_button:
-            main_window.reload_tabs_after_new_fav_team(2)
+            main_window.reload_tabs_after_changes(2)
             
    
 

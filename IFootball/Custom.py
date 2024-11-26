@@ -209,10 +209,6 @@ class Custom:
 
     @staticmethod
     def update_team_name(team_data, idx, name):
-        """
-        Update the team name in the team_data list.
-        This method is called when the team name input changes.
-        """
         if idx >= len(team_data):
             team_data.append({'name': '', 'crest': ''})  
         team_data[idx]['name'] = name

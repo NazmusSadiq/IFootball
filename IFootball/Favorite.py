@@ -61,7 +61,7 @@ class Favorite:
         dialog.setWindowTitle("Set Favorite Team")
     
         dialog.setWindowFlags(dialog.windowFlags() & ~qtc.Qt.WindowContextHelpButtonHint)
-        dialog.setGeometry(main_window.x(), main_window.y()+15, 685, 915)
+        dialog.setGeometry(main_window.x(), main_window.y()+30, 725, 1010)
         dialog.setLayout(qtw.QVBoxLayout())
 
         label = qtw.QLabel("Please start typing your favorite team:")

@@ -24,8 +24,10 @@ class Matches:
             label = qtw.QLabel(header)
             label.setFixedWidth(Matches.column_widths.get(header, 50))
 
-            if header in ["Home", "Score", "Away"]:
+            if header in ["Home", "Score"]:
                 label.setContentsMargins(30, 0, 0, 0) 
+            elif header in "Away":
+                label.setContentsMargins(55, 0, 0, 0) 
 
             header_layout.addWidget(label, 0, idx, alignment=qtc.Qt.AlignCenter)
 
@@ -35,17 +37,14 @@ class Matches:
     def create_match_row(layout, match):
         match_layout = qtw.QGridLayout()
 
-        # Date
         date_label = qtw.QLabel(match['match_date'].strftime('%Y-%m-%d %H:%M'))
         date_label.setMinimumWidth(Matches.column_widths["Date"])
         match_layout.addWidget(date_label, 0, 0, alignment=qtc.Qt.AlignLeft)
 
-        # Matchday
         round_label = qtw.QLabel(f"{match['matchday']}")
         round_label.setMinimumWidth(Matches.column_widths["Matchday"])
         match_layout.addWidget(round_label, 0, 1, alignment=qtc.Qt.AlignLeft)
 
-        # Home Team Name and Crest
         home_team_layout = qtw.QHBoxLayout()
         home_team_layout.addWidget(Matches.get_team_crest(match['home_team_id']))
         home_team_label = qtw.QLabel(f"{match['home_team']}")
@@ -53,7 +52,6 @@ class Matches:
         home_team_layout.addWidget(home_team_label)
         match_layout.addLayout(home_team_layout, 0, 2, alignment=qtc.Qt.AlignLeft)
 
-        # Score Label
         home_score = match['home_score']
         away_score = match['away_score']
         score_display = (
@@ -63,25 +61,22 @@ class Matches:
         )
         score_label = qtw.QLabel(score_display)
         score_label.setMinimumWidth(Matches.column_widths["Score"])
-        score_label.setContentsMargins(15, 0, 0, 0)  # Add margin to shift score label right
+        score_label.setContentsMargins(15, 0, 0, 0)
         match_layout.addWidget(score_label, 0, 3, alignment=qtc.Qt.AlignCenter)
 
-        # Away Team Crest and Name
         away_team_layout = qtw.QHBoxLayout()
-        away_team_layout.setContentsMargins(0, 0, 15, 0)  # Add margin to shift away team crest left
+        away_team_layout.setContentsMargins(0, 0, 15, 0) 
+        away_team_layout.addWidget(Matches.get_team_crest(match['away_team_id']))
         away_team_label = qtw.QLabel(match['away_team'])
         away_team_label.setMinimumWidth(Matches.column_widths["Away"])
         away_team_layout.addWidget(away_team_label)
-        away_team_layout.addWidget(Matches.get_team_crest(match['away_team_id']))
         match_layout.addLayout(away_team_layout, 0, 4, alignment=qtc.Qt.AlignLeft)
 
-        # Bookmark Label
         bookmark_label = qtw.QLabel()
         Matches.set_bookmark_image(bookmark_label, match.get('subscribed'))
         bookmark_label.mousePressEvent = lambda event: Matches.toggle_bookmark(bookmark_label, match)
         match_layout.addWidget(bookmark_label, 0, 5, alignment=qtc.Qt.AlignCenter)
 
-        # Add the match layout to the main layout
         layout.addLayout(match_layout)
 
 
@@ -89,9 +84,8 @@ class Matches:
     @staticmethod
     def get_bookmark_image(subscribed):
         image_name = "subscribed.png" if subscribed == 'Yes' else "notSubscribed.png"
-        # Check if the image is already cached
+  
         if image_name not in Matches.image_cache:
-            # Load and cache the image if not already done
             image_path = os.path.join(os.path.dirname(__file__), 'images', image_name)
             pixmap = qtg.QPixmap(image_path).scaled(30, 30, qtc.Qt.KeepAspectRatio)
             Matches.image_cache[image_name] = pixmap
@@ -100,20 +94,20 @@ class Matches:
 
     @staticmethod
     def set_bookmark_image(label, subscribed):
-        """Sets the bookmark image to the label."""
         pixmap = Matches.get_bookmark_image(subscribed)
         label.setPixmap(pixmap)
 
     @staticmethod
     def toggle_bookmark(label, match):
         new_status = 'No' if match.get('subscribed') == 'Yes' else 'Yes'
-        match['subscribed'] = new_status  # Update the match's subscription status
-        Queries.toggle_match_as_subscribed(match['match_id'],new_status)  # Call the database function
-        Matches.set_bookmark_image(label, new_status)  # Update the image
+        match['subscribed'] = new_status  
+        Queries.toggle_match_as_subscribed(match['match_id'],new_status)  
+        Matches.set_bookmark_image(label, new_status)
+        from UILoader import UILoader
+        UILoader.should_reload_for_subscribed = True
 
     @staticmethod
     def get_team_crest(team_id,main = 0):
-        """Returns a QLabel with the team crest image."""
         crests_dir = os.path.join(os.path.dirname(__file__), 'crests')
         crest_path = os.path.join(crests_dir, f"{team_id}.png")
 
