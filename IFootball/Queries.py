@@ -390,13 +390,15 @@ class Queries:
                 matches_to_show.append(match)   
                 break
 
-            comp_ids = [2001, 2021, 2014, 2002, 2019, 2015]
-            for comp_id in comp_ids:
-                hot_match = Queries.get_comp_recent_hot_match(comp_id)
-                if hot_match is None:
-                    continue
-                else:
-                    matches_to_show.append(hot_match)
+        comp_ids = [2001, 2021, 2014, 2002, 2019, 2015]
+        # print(len(comp_ids))
+        for comp_id in comp_ids:
+            # print(comp_id)
+            hot_match = Queries.get_comp_recent_hot_match(comp_id)
+            if hot_match is None:
+                continue
+            else:
+                matches_to_show.append(hot_match)
                 
 
         result = []
@@ -618,7 +620,7 @@ class Queries:
         ranks_map = {team["team_id"]: team["points"] for team in team_ranks}
         highest_avg = 0
         recent_hot_match = None
-        
+        # print(comp_id)
         for fixture in fixtures:
             home_team_rank = ranks_map.get(fixture["home_team_id"], None)
             away_team_rank = ranks_map.get(fixture["away_team_id"], None)
