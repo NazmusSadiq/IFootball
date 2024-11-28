@@ -400,6 +400,7 @@ class QueryTexts:
             ORDER BY m.match_utc_date DESC
             LIMIT 1;
         """  
+        
     comp_next_match_query = """
             SELECT 
             m.match_id, 
@@ -423,3 +424,63 @@ class QueryTexts:
             ORDER BY m.match_utc_date DESC
             LIMIT 1;
             """
+            
+    query_top_scorers = """
+        SELECT 
+            ps.player_name,
+            MAX(ps.team_name),
+            SUM(ps.goals) AS total_goals
+        FROM player_stats ps
+        WHERE ps.competition_id = %s
+        GROUP BY ps.player_name
+        ORDER BY total_goals DESC
+        LIMIT 5;
+        """
+        
+    query_top_assists = """
+        SELECT 
+            ps.player_name,
+            MAX(ps.team_name),
+            SUM(ps.assists) AS total_assists
+        FROM player_stats ps
+        WHERE ps.competition_id = %s
+        GROUP BY ps.player_name
+        ORDER BY total_assists DESC
+        LIMIT 5;
+        """
+
+    query_top_yellow_cards = """
+        SELECT 
+            ps.player_name,
+            MAX(ps.team_name),
+            SUM(ps.yellow_cards) AS total_yellow_cards
+        FROM player_stats ps
+        WHERE ps.competition_id = %s
+        GROUP BY ps.player_name
+        ORDER BY total_yellow_cards DESC
+        LIMIT 5;
+        """
+        
+    query_top_red_cards = """
+        SELECT 
+            ps.player_name,
+            MAX(ps.team_name),
+            SUM(ps.red_cards) AS total_red_cards
+        FROM player_stats ps
+        WHERE ps.competition_id = %s
+        GROUP BY ps.player_name
+        ORDER BY total_red_cards DESC
+        LIMIT 5;
+        """
+        
+    query_top_clean_sheets = """
+        SELECT 
+            ps.player_name,
+            MAX(ps.team_name),
+            SUM(ps.clean_sheets) AS total_clean_sheets
+        FROM player_stats ps
+        WHERE ps.competition_id = %s
+        GROUP BY ps.player_name
+        ORDER BY total_clean_sheets DESC
+        LIMIT 5;
+        """

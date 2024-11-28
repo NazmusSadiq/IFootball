@@ -9,11 +9,11 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="4444",
+    password="210041139",
     database="IFootball"
 )
 cursor = db.cursor()
-DATABASE_URI = 'mysql+mysqlconnector://root:4444@localhost/IFootball'
+DATABASE_URI = 'mysql+mysqlconnector://root:210041139@localhost/IFootball'
 Base = declarative_base()
 engine = create_engine(DATABASE_URI) 
 
