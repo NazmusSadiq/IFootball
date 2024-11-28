@@ -391,9 +391,7 @@ class Queries:
                 break
 
         comp_ids = [2001, 2021, 2014, 2002, 2019, 2015]
-        # print(len(comp_ids))
         for comp_id in comp_ids:
-            # print(comp_id)
             hot_match = Queries.get_comp_recent_hot_match(comp_id)
             if hot_match is None:
                 continue
@@ -624,7 +622,6 @@ class Queries:
         for fixture in fixtures:
             home_team_rank = ranks_map.get(fixture["home_team_id"], None)
             away_team_rank = ranks_map.get(fixture["away_team_id"], None)
-            # print(home_team_rank," ",away_team_rank,"\n")
             if home_team_rank is None or away_team_rank is None:
                 continue
             avg_rank = (home_team_rank + away_team_rank) / 2
@@ -633,7 +630,6 @@ class Queries:
                 recent_hot_match = fixture
                 recent_hot_match["competition_id"] = comp_id
 
-        # print(recent_hot_match,"\n",highest_avg)
         return recent_hot_match
 
             
