@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="210041139",
+    password="4444",
     database="IFootball"
 )
 cursor = db.cursor()
@@ -168,13 +168,14 @@ class Queries:
         for team in standings:
             team_stat = {
                 "team_name": team[0],
-                "points": team[1],
-                "wins": team[2],
-                "draws": team[3],
-                "losses": team[4],
-                "goals_scored": team[5],
-                "goals_conceded": team[6],
-                "goal_difference": team[7]
+                "team_id": team[1],
+                "points": team[2],
+                "wins": team[3],
+                "draws": team[4],
+                "losses": team[5],
+                "goals_scored": team[6],
+                "goals_conceded": team[7],
+                "goal_difference": team[8]
             }
             result.append(team_stat)
 
@@ -391,20 +392,12 @@ class Queries:
 
             comp_ids = [2001, 2021, 2014, 2002, 2019, 2015]
             for comp_id in comp_ids:
-                next_match = Queries.get_comp_next_match(comp_id)
-                prev_match = Queries.get_comp_prev_match(comp_id)
-               
-                if next_match is None and prev_match is None:
-                    continue  
-                elif next_match is None:
-                    matches_to_show.append(prev_match)  
-                elif prev_match is None:
-                    matches_to_show.append(next_match)  
+                hot_match = Queries.get_comp_recent_hot_match(comp_id)
+                if hot_match is None:
+                    continue
                 else:
-                    if next_match["match_date"] - datetime.now() < datetime.now() - prev_match["match_date"]: 
-                        matches_to_show.append(next_match)
-                    else:
-                        matches_to_show.append(prev_match)
+                    matches_to_show.append(hot_match)
+                
 
         result = []
         for match in matches_to_show:
@@ -592,7 +585,8 @@ class Queries:
         else:
             print("No Next match found for " + str(comp_id))
             return None
-        
+
+     
     def get_comp_prev_match(comp_id):
         query = QueryTexts.comp_previous_match_query
         cursor.execute(query, (comp_id,))
@@ -616,3 +610,30 @@ class Queries:
         else:
             print("No Previous match found for " + str(comp_id))
             return None
+        
+    def get_comp_recent_hot_match(comp_id):
+        fixtures = Queries.get_fixtures(comp_id)
+        team_ranks = Queries.get_competition_standings(comp_id)
+        # Create a dictionary for quick rank lookup
+        ranks_map = {team["team_id"]: team["points"] for team in team_ranks}
+        highest_avg = 0
+        recent_hot_match = None
+        
+        for fixture in fixtures:
+            home_team_rank = ranks_map.get(fixture["home_team_id"], None)
+            away_team_rank = ranks_map.get(fixture["away_team_id"], None)
+            # print(home_team_rank," ",away_team_rank,"\n")
+            if home_team_rank is None or away_team_rank is None:
+                continue
+            avg_rank = (home_team_rank + away_team_rank) / 2
+            if avg_rank > highest_avg:
+                highest_avg = avg_rank
+                recent_hot_match = fixture
+                recent_hot_match["competition_id"] = comp_id
+
+        # print(recent_hot_match,"\n",highest_avg)
+        return recent_hot_match
+
+            
+        
+            

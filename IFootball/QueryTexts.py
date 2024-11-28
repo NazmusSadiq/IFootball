@@ -155,7 +155,7 @@ class QueryTexts:
         
     competition_standings_query = """
         SELECT 
-            t.short_name,
+            t.short_name,t.team_id,
             SUM(CASE 
                 WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 3 
                 WHEN s.full_time_home = s.full_time_away THEN 1 
@@ -189,7 +189,7 @@ class QueryTexts:
         JOIN matches m ON (m.home_team_id = t.team_id OR m.away_team_id = t.team_id)
         JOIN scores s ON m.match_id = s.match_id
         WHERE m.competition_id = %s
-        GROUP BY t.short_name
+        GROUP BY t.short_name, t.team_id
         ORDER BY points DESC, goal_difference DESC, goals_scored DESC
         """
        
