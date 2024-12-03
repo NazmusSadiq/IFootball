@@ -16,10 +16,8 @@ class Queries:
         
     def fetch_teams_from_database():
         try:
-            # Execute the query to get team names from the database
             cursor.execute("SELECT team_name FROM teams")
 
-            # Fetch all team names and return them as a list
             teams = [row[0] for row in cursor.fetchall()]
             return teams
         except Exception as e:
@@ -65,27 +63,22 @@ class Queries:
         cursor.execute(query, (team_id, team_id, team_id, team_id, team_id, team_id, team_id, team_id))
         stats = cursor.fetchall()
 
-        # Query to get the biggest win by competition
         biggest_win_query = QueryTexts.biggest_win_query
         cursor.execute(biggest_win_query, (team_id, team_id, team_id, team_id, team_id, team_id, team_id))
         biggest_wins = cursor.fetchall()
 
-        # Query to get the biggest loss by competition
         biggest_loss_query = QueryTexts.biggest_loss_query
         cursor.execute(biggest_loss_query, (team_id, team_id, team_id, team_id, team_id, team_id, team_id))
         biggest_losses = cursor.fetchall()
 
-        # Dictionary to hold the biggest win and biggest loss for each competition
         biggest_stats_dict = {}
 
-        # Process biggest wins
         for win in biggest_wins:
             competition_name = win[0]
             goal_difference = win[3]
             if competition_name not in biggest_stats_dict:
                 biggest_stats_dict[competition_name] = {'biggest_win': None, 'biggest_loss': None}
         
-            # Check if this competition already has a biggest win
             if biggest_stats_dict[competition_name]['biggest_win'] is None or goal_difference > biggest_stats_dict[competition_name]['biggest_win']['goal_difference']:
                 biggest_stats_dict[competition_name]['biggest_win'] = {
                     "date": win[1].strftime('%Y-%m-%d'),
@@ -93,17 +86,15 @@ class Queries:
                     "goal_difference": goal_difference,
                     "team_goals": win[4],
                     "opponent_goals": win[5],
-                    "matchday": win[6]  # Add match day
+                    "matchday": win[6]  
                 }
 
-        # Process biggest losses
         for loss in biggest_losses:
             competition_name = loss[0]
             goal_difference = loss[3]
             if competition_name not in biggest_stats_dict:
                 biggest_stats_dict[competition_name] = {'biggest_win': None, 'biggest_loss': None}
         
-            # Check if this competition already has a biggest loss
             if biggest_stats_dict[competition_name]['biggest_loss'] is None or goal_difference > biggest_stats_dict[competition_name]['biggest_loss']['goal_difference']:
                 biggest_stats_dict[competition_name]['biggest_loss'] = {
                     "date": loss[1].strftime('%Y-%m-%d'),
@@ -111,10 +102,9 @@ class Queries:
                     "goal_difference": goal_difference,
                     "team_goals": loss[4],
                     "opponent_goals": loss[5],
-                    "matchday": loss[6]  # Add match day
+                    "matchday": loss[6]  
                 }
 
-        # Formatting the result
         result = []
         for stat in stats:
             competition_name = stat[0]
@@ -143,15 +133,14 @@ class Queries:
         cursor.execute(query, (team_id, team_id, limit))
         matches = cursor.fetchall()
 
-        # Returning the match details
         return [
             {
                 "match_id": row[0],
                 "team1": row[1],  # home team
                 "team2": row[2],  # away team
-                "date": row[3].strftime('%Y-%m-%d'),  # match date in 'YYYY-MM-DD' format
-                "competition": row[4],  # Competition name
-                "matchday": row[5],  # Matchday
+                "date": row[3].strftime('%Y-%m-%d'),  
+                "competition": row[4],  
+                "matchday": row[5],  
                 "home_team_id": row[6],
                 "away_team_id": row[7],
                 "subscribed": row[8]
@@ -184,23 +173,18 @@ class Queries:
     def get_competition_standings_near_team(competition_id, team_id):
         
         query = QueryTexts.competition_standings_near_team_query
-        # Execute the query to get the full standings
         cursor.execute(query, (competition_id,))
         standings = cursor.fetchall()
 
-        # Find the position of the specified team
         team_position = next((index for index, team in enumerate(standings) if team[0] == team_id), None)
         if team_position is None:
-            return []  # Return an empty list if the team_id is not found
+            return []  
+        
+        start = max(0, team_position - 2)  
+        end = min(len(standings), team_position + 3)  
 
-        # Determine the range of teams to show (5 teams around the specified team)
-        start = max(0, team_position - 2)  # Previous 2 teams
-        end = min(len(standings), team_position + 3)  # Next 2 teams plus the specified team
-
-        # Slice the standings for 5 teams based on the calculated range
         selected_standings = standings[start:end]
 
-        # Format the results
         result = []
         for index, team in enumerate(selected_standings, start=start):
             team_stat = {
@@ -213,7 +197,7 @@ class Queries:
                 "goals_scored": team[6],
                 "goals_conceded": team[7],
                 "goal_difference": team[8],
-                "team_pos": index + 1  # Adjusted for 1-based position
+                "team_pos": index + 1  
             }
             result.append(team_stat)
 
@@ -253,10 +237,8 @@ class Queries:
     
         query = QueryTexts.get_fixtures_query(placeholders)
 
-        # Prepare parameters for the query
         parameters = competition_ids + [last, next]
 
-        # Execute query with parameters
         cursor.execute(query, parameters)
         fixtures = cursor.fetchall()
 
@@ -305,7 +287,6 @@ class Queries:
                     "subscribed": fixture[10]
                 }
                 
-            # If no competition_id is provided, add the default competition IDs to the result
             if competition_id is None:
                 fixture_data["default_competition_ids"] = default_competition_ids
         
@@ -323,7 +304,6 @@ class Queries:
             WHERE home_team_id = %s OR away_team_id = %s
         """
     
-        # Execute the query with the appropriate value
         cursor.execute(query, (subscribed_value, favorite_team_id, favorite_team_id))
         db.commit()
         
@@ -380,14 +360,17 @@ class Queries:
         
         matches = Queries.get_subscribed_matches()
         current_date = datetime.utcnow()
-        matches_to_show = []    
+        matches_to_show = [] 
+        unique_ids = set()
         
         for match in matches:
             match_date = match["match_date"]
             if match_date < current_date and len(matches_to_show) == 0:
-                matches_to_show.append(match)   
+                matches_to_show.append(match) 
+                unique_ids.add(match["match_id"])
             elif match_date >= current_date:
-                matches_to_show.append(match)   
+                matches_to_show.append(match)
+                unique_ids.add(match["match_id"])
                 break
 
         comp_ids = [2001, 2021, 2014, 2002, 2019, 2015]
@@ -395,9 +378,9 @@ class Queries:
             hot_match = Queries.get_comp_recent_hot_match(comp_id)
             if hot_match is None:
                 continue
-            else:
+            elif hot_match["match_id"] not in unique_ids:
                 matches_to_show.append(hot_match)
-                
+                unique_ids.add(match["match_id"])             
 
         result = []
         for match in matches_to_show:
@@ -440,7 +423,6 @@ class Queries:
         return result
     
     def get_player_stats(competition_id):
-        # Initialize result dictionary to hold player stats
         result = {
             "top_scorers": [],
             "top_assist_providers": [],
@@ -449,18 +431,7 @@ class Queries:
             "top_clean_sheet_providers": []
         }
 
-        # Query for top scorers
-        query_top_scorers = """
-        SELECT 
-            ps.player_name,
-            MAX(ps.team_name),
-            SUM(ps.goals) AS total_goals
-        FROM player_stats ps
-        WHERE ps.competition_id = %s
-        GROUP BY ps.player_name
-        ORDER BY total_goals DESC
-        LIMIT 5;
-        """
+        query_top_scorers = QueryTexts.query_top_scorers
         cursor.execute(query_top_scorers, (competition_id,))
         top_scorers = cursor.fetchall()
 
@@ -471,18 +442,7 @@ class Queries:
                 "team_name": player[1]
             })
 
-        # Query for top assist providers
-        query_top_assists = """
-        SELECT 
-            ps.player_name,
-            MAX(ps.team_name),
-            SUM(ps.assists) AS total_assists
-        FROM player_stats ps
-        WHERE ps.competition_id = %s
-        GROUP BY ps.player_name
-        ORDER BY total_assists DESC
-        LIMIT 5;
-        """
+        query_top_assists = QueryTexts.query_top_assists
         cursor.execute(query_top_assists, (competition_id,))
         top_assist_providers = cursor.fetchall()
 
@@ -493,18 +453,7 @@ class Queries:
                 "team_name": player[1]
             })
 
-        # Query for top yellow card recipients
-        query_top_yellow_cards = """
-        SELECT 
-            ps.player_name,
-            MAX(ps.team_name),
-            SUM(ps.yellow_cards) AS total_yellow_cards
-        FROM player_stats ps
-        WHERE ps.competition_id = %s
-        GROUP BY ps.player_name
-        ORDER BY total_yellow_cards DESC
-        LIMIT 5;
-        """
+        query_top_yellow_cards = QueryTexts.query_top_yellow_cards
         cursor.execute(query_top_yellow_cards, (competition_id,))
         top_yellow_card_recipients = cursor.fetchall()
 
@@ -515,18 +464,7 @@ class Queries:
                 "team_name": player[1]
             })
 
-        # Query for top red card recipients
-        query_top_red_cards = """
-        SELECT 
-            ps.player_name,
-            MAX(ps.team_name),
-            SUM(ps.red_cards) AS total_red_cards
-        FROM player_stats ps
-        WHERE ps.competition_id = %s
-        GROUP BY ps.player_name
-        ORDER BY total_red_cards DESC
-        LIMIT 5;
-        """
+        query_top_red_cards = QueryTexts.query_top_red_cards
         cursor.execute(query_top_red_cards, (competition_id,))
         top_red_card_recipients = cursor.fetchall()
 
@@ -537,18 +475,7 @@ class Queries:
                 "team_name": player[1]
             })
 
-        # Query for top clean sheet providers
-        query_top_clean_sheets = """
-        SELECT 
-            ps.player_name,
-            MAX(ps.team_name),
-            SUM(ps.clean_sheets) AS total_clean_sheets
-        FROM player_stats ps
-        WHERE ps.competition_id = %s
-        GROUP BY ps.player_name
-        ORDER BY total_clean_sheets DESC
-        LIMIT 5;
-        """
+        query_top_clean_sheets = QueryTexts.query_top_clean_sheets
         cursor.execute(query_top_clean_sheets, (competition_id,))
         top_clean_sheet_providers = cursor.fetchall()
 
@@ -580,12 +507,10 @@ class Queries:
                 "subscribed": fixture[10],
                 "competition_id": fixture[11]
             }
-            # print("Next Match:", fixture_data)
             return fixture_data
         else:
             print("No Next match found for " + str(comp_id))
             return None
-
      
     def get_comp_prev_match(comp_id):
         query = QueryTexts.comp_previous_match_query
@@ -614,7 +539,6 @@ class Queries:
     def get_comp_recent_hot_match(comp_id):
         fixtures = Queries.get_fixtures(comp_id)
         team_ranks = Queries.get_competition_standings(comp_id)
-        # Create a dictionary for quick rank lookup
         ranks_map = {team["team_id"]: team["points"] for team in team_ranks}
         highest_avg = 0
         recent_hot_match = None

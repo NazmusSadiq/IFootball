@@ -36,7 +36,7 @@ class Custom:
     @staticmethod
     def create_custom_match_row(layout, match):
         match_layout = qtw.QGridLayout()
-        
+        # print(match)
         round_label = qtw.QLabel(f"{match['matchday']}")
         round_label.setMinimumWidth(Custom.column_widths["Matchday"])
         round_label.setContentsMargins(50, 0, 0, 0)
@@ -276,12 +276,106 @@ class Custom:
 
         modify_layout.addWidget(add_matches_button)
 
+        back_button = qtw.QPushButton("Back")
+        back_button.setStyleSheet("QPushButton { text-align: center; font-size: 14px; padding: 5px 10px; }")
+        back_button.clicked.connect(lambda: stacked_layout.setCurrentWidget(main_view_widget))
+
+        update_match_button = qtw.QPushButton("Update Match")
+        update_match_button.setStyleSheet("QPushButton { text-align: center; font-size: 14px; padding: 5px 10px; }")
+        update_match_button.clicked.connect(lambda: Custom.update_match(main_window))
+        modify_layout.addWidget(update_match_button)
+        modify_layout.addWidget(back_button)
+
+
         modify_widget = qtw.QWidget()
         modify_widget.setLayout(modify_layout)
 
         stacked_layout.addWidget(modify_widget)
         stacked_layout.setCurrentWidget(modify_widget)
+
+    @staticmethod
+    def update_match(main_window):
+        competition_id = Custom.selected_comp_id
+
+        try:
+            matches = CustomQueries.get_fixtures(competition_id)
+            unfinished_matches = [match for match in matches if match["status"] == "Unfinished"]
+
+            if not unfinished_matches:
+                qtw.QMessageBox.information(main_window, "No Unfinished Matches", "All matches are finished.")
+                return
+
+            # print(f"Unfinished Matches: {unfinished_matches}")
+
+            matchday = unfinished_matches[0]["matchday"]
+            matchday_matches = [match for match in unfinished_matches if match["matchday"] == matchday]
+    
+            for match in matchday_matches:
+                Custom.show_update_match_dialog(main_window, match, matchday)
+
+        except Exception as e:
+            print(f"Error fetching matches: {e}")
+            qtw.QMessageBox.critical(main_window, "Error", f"Failed to fetch matches: {e}")
+
+    @staticmethod
+    def show_update_match_dialog(main_window, match, matchday):
+        home_team_name = CustomQueries.get_team_name(match["home_team_id"])
+        away_team_name = CustomQueries.get_team_name(match["away_team_id"])
+
+        dialog = qtw.QDialog(main_window)
+        dialog.setWindowTitle("Update Match")
+        dialog_layout = qtw.QVBoxLayout(dialog)
+
+        # Display team names
+        home_team_label = qtw.QLabel(f"Home Team: {home_team_name}")
+        away_team_label = qtw.QLabel(f"Away Team: {away_team_name}")
+        matchday_label = qtw.QLabel(f"Matchday: {matchday}")
+        dialog_layout.addWidget(matchday_label)
+        dialog_layout.addWidget(home_team_label)
         
+
+        # Input fields for scores
+        home_score_label = qtw.QLabel("Home Team Score:")
+        home_score_input = qtw.QLineEdit()
+        home_score_input.setText(str(match["home_score"]) if match["home_score"] is not None else "")
+        
+        away_score_label = qtw.QLabel("Away Team Score:")
+        away_score_input = qtw.QLineEdit()
+        away_score_input.setText(str(match["away_score"]) if match["away_score"] is not None else "")
+
+        dialog_layout.addWidget(home_score_label)
+        dialog_layout.addWidget(home_score_input)
+        dialog_layout.addWidget(away_team_label)
+        dialog_layout.addWidget(away_score_label)
+        dialog_layout.addWidget(away_score_input)
+
+        # Save button
+        save_button = qtw.QPushButton("Save")
+        save_button.clicked.connect(lambda: Custom.save_match_update(
+            dialog, match["match_id"], home_score_input.text(), away_score_input.text(), main_window
+        ))
+        dialog_layout.addWidget(save_button)
+
+        dialog.setLayout(dialog_layout)
+        dialog.exec_()
+
+
+    @staticmethod
+    def save_match_update(dialog, match_id, home_score, away_score, main_window):
+        if not home_score.isdigit() or not away_score.isdigit():
+            qtw.QMessageBox.warning(dialog, "Invalid Input", "Scores must be numeric.")
+            return
+
+        try:
+            CustomQueries.update_match(match_id, int(home_score), int(away_score))
+
+            qtw.QMessageBox.information(dialog, "Success", "Match updated successfully.")
+            dialog.accept()
+            main_window.reload_custom_tab()
+
+        except Exception as e:
+            qtw.QMessageBox.critical(dialog, "Error", f"Failed to update match: {e}")
+
     @staticmethod
     def create_sub_tab_match(fixtures_layout):
         widget = qtw.QWidget()

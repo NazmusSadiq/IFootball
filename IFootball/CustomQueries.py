@@ -292,7 +292,11 @@ class CustomQueries:
         label = qtw.QLabel()
         label.setPixmap(pixmap)
         return label
-     
+    def get_team_name(team_id):
+        query = "SELECT team_name FROM custom_teams WHERE team_id = %s"
+        cursor.execute(query, (team_id,))
+        team_name = cursor.fetchone()[0]
+        return team_name
     def get_fixtures(comp_id, last=20, next=20):
         try:
             query = f"""
@@ -317,16 +321,10 @@ class CustomQueries:
 
                 result = []
                 for match in next_matches:
-                    cursor.execute(
-                        "SELECT team_name FROM custom_teams WHERE team_id = %s",
-                        (match[2],)
-                    )
-                    home_team_name = cursor.fetchone()[0]
-                    cursor.execute(
-                        "SELECT team_name FROM custom_teams WHERE team_id = %s",
-                        (match[3],)
-                    )
-                    away_team_name = cursor.fetchone()[0]
+                    
+                    home_team_name = CustomQueries.get_team_name(match[2])
+                    
+                    away_team_name = CustomQueries.get_team_name(match[3])
                 
                     result.append({
                         "match_id": match[0],
@@ -367,12 +365,14 @@ class CustomQueries:
                     "match_id": match[0],
                     "status": match[1],
                     "home_team_id": match[2],
-                    "home_team_name": home_team_name,
+                    "home_team": home_team_name,
                     "away_team_id": match[3],
-                    "away_team_name": away_team_name,
+                    "away_team": away_team_name,
                     "competition_id": match[4],
                     "home_score": match[5],
-                    "away_score": match[6]
+                    "away_score": match[6],
+                    "serial": match[7],
+                    "matchday": match[8]
                 })
 
             return result
@@ -407,5 +407,22 @@ class CustomQueries:
         except Exception as e:
             print(f"Error fetching fixtures: {e}")
             return [] 
+        
+    def update_match(match_id, home_score, away_score):
+        try:
+            query = """
+            UPDATE custom_matches
+            SET home_score = %s, away_score = %s, status = %s
+            WHERE match_id = %s
+            """
+            status = "Finished" if home_score is not None and away_score is not None else "Unfinished"
 
+            cursor.execute(query, (home_score, away_score, status, match_id))
+            db.commit()
+            print(f"Match {match_id} updated successfully: {home_score}-{away_score}")
+            return True
+        except Exception as e:
+            print(f"Error updating match {match_id}: {e}")
+            db.rollback()
+            return False
 Base.metadata.create_all(engine)
