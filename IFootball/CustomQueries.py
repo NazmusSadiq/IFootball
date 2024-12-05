@@ -9,11 +9,11 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="4444",
+    password="210041139",
     database="IFootball"
 )
 cursor = db.cursor()
-DATABASE_URI = 'mysql+mysqlconnector://root:4444@localhost/IFootball'
+DATABASE_URI = 'mysql+mysqlconnector://root:210041139@localhost/IFootball'
 Base = declarative_base()
 engine = create_engine(DATABASE_URI) 
 
@@ -64,6 +64,17 @@ class CustomQueries:
         except Exception as e:
             print(f"Error executing query: {e}")
             return []
+    
+    def get_competition_by_id(comp_id):
+        query = "SELECT competition_name FROM competitions WHERE competition_id = %s"
+    
+        try:
+            cursor.execute(query, (comp_id,))  
+            result = cursor.fetchone()  
+            return result[0] if result else None
+        except Exception as e:
+            print(f"Error fetching competition by ID: {e}")
+            return None
 
     def generate_custom_competition_id():
         while True:
@@ -160,7 +171,6 @@ class CustomQueries:
         query = QueryTexts.custom_competition_standings_query
         cursor.execute(query, (competition_id, competition_id))
         standings = cursor.fetchall()
-        print(f"id:{competition_id}")
         result = []
         for index, team in enumerate(standings):
             team_stat = {
@@ -179,7 +189,6 @@ class CustomQueries:
      
     def create_new_fixture(comp_id):
         try:
-            # Fetch all teams in the competition
             fetch_teams_query = """
                 SELECT team_id FROM custom_teams WHERE competition_id = %s
             """
@@ -191,18 +200,15 @@ class CustomQueries:
                 print("Not enough teams for a competition.")
                 return
 
-            # Ensure even number of teams by adding a dummy team if needed
             if num_teams % 2 != 0:
-                teams.append("BYE")  # Add a "bye" team for odd team count
+                teams.append("BYE")  
                 num_teams += 1
 
             print(f"Total teams: {num_teams} (including BYE if needed)")
 
-            # List to store match data
             matches = []
             current_serial = 1
 
-            # Generate the rounds
             rounds = []
             for round_num in range(num_teams - 1):
                 round_matches = []
@@ -216,7 +222,6 @@ class CustomQueries:
                             "round": round_num + 1
                         })
                 rounds.append(round_matches)
-                # Rotate teams clockwise, leaving the first team fixed
                 teams = [teams[0]] + [teams[-1]] + teams[1:-1]
 
             for round_num, round_matches in enumerate(rounds, start=1):  
@@ -248,9 +253,7 @@ class CustomQueries:
                         "round": round_num
                     })
                     current_serial += 1
-
-
-            # Insert matches into the database
+                    
             insert_match_query = """
                 INSERT INTO custom_matches (match_id, status, home_team_id, away_team_id, competition_id, home_score, away_score, serial, round)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -297,7 +300,7 @@ class CustomQueries:
         cursor.execute(query, (team_id,))
         team_name = cursor.fetchone()[0]
         return team_name
-    def get_fixtures(comp_id, last=20, next=20):
+    def get_fixtures(comp_id, last=40, next=40):
         try:
             query = f"""
             SELECT * FROM custom_matches

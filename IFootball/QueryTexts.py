@@ -197,45 +197,45 @@ class QueryTexts:
         SELECT 
             t.team_name,
             COALESCE(SUM(CASE 
-                WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR 
-                     (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 3 
-                WHEN s.full_time_home = s.full_time_away THEN 1 
+                WHEN (m.home_team_id = t.team_id AND m.home_score > m.away_score) OR 
+                     (m.away_team_id = t.team_id AND m.away_score > m.home_score) THEN 3 
+                WHEN m.home_score = m.away_score THEN 1 
                 ELSE 0 
             END), 0) AS points,
             COALESCE(SUM(CASE 
-                WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR 
-                     (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 1 
+                WHEN (m.home_team_id = t.team_id AND m.home_score > m.away_score) OR 
+                     (m.away_team_id = t.team_id AND m.away_score > m.home_score) THEN 1 
                 ELSE 0 
             END), 0) AS wins,
-            COALESCE(SUM(CASE WHEN s.full_time_home = s.full_time_away THEN 1 ELSE 0 END), 0) AS draws,
+            COALESCE(SUM(CASE WHEN m.home_score = m.away_score THEN 1 ELSE 0 END), 0) AS draws,
             COALESCE(SUM(CASE 
-                WHEN (m.home_team_id = t.team_id AND s.full_time_home < s.full_time_away) OR 
-                     (m.away_team_id = t.team_id AND s.full_time_away < s.full_time_home) THEN 1 
+                WHEN (m.home_team_id = t.team_id AND m.home_score < m.away_score) OR 
+                     (m.away_team_id = t.team_id AND m.away_score < m.home_score) THEN 1 
                 ELSE 0 
             END), 0) AS losses,
             COALESCE(SUM(CASE 
-                WHEN m.home_team_id = t.team_id THEN s.full_time_home 
-                ELSE s.full_time_away 
+                WHEN m.home_team_id = t.team_id THEN m.home_score 
+                ELSE m.away_score 
             END), 0) AS goals_scored,
             COALESCE(SUM(CASE 
-                WHEN m.home_team_id = t.team_id THEN s.full_time_away 
-                ELSE s.full_time_home 
+                WHEN m.home_team_id = t.team_id THEN m.away_score 
+                ELSE m.home_score 
             END), 0) AS goals_conceded,
             COALESCE(SUM(CASE 
-                WHEN m.home_team_id = t.team_id THEN s.full_time_home 
-                ELSE s.full_time_away 
+                WHEN m.home_team_id = t.team_id THEN m.home_score 
+                ELSE m.away_score 
             END), 0) - 
             COALESCE(SUM(CASE 
-                WHEN m.home_team_id = t.team_id THEN s.full_time_away 
-                ELSE s.full_time_home 
+                WHEN m.home_team_id = t.team_id THEN m.away_score 
+                ELSE m.home_score 
             END), 0) AS goal_difference
         FROM custom_teams t
         LEFT JOIN custom_matches m ON (m.home_team_id = t.team_id OR m.away_team_id = t.team_id) AND m.competition_id = %s
-        LEFT JOIN scores s ON m.match_id = s.match_id
         WHERE t.competition_id = %s
         GROUP BY t.team_name
         ORDER BY points DESC, goal_difference DESC, goals_scored DESC
     """
+
 
     competition_standings_near_team_query = """
         SELECT 
