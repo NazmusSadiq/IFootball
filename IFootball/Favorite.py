@@ -3,6 +3,9 @@ import os
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as qtg
 import PyQt5.QtCore as qtc
+import requests
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import QByteArray
 from Queries import Queries
 from News import News
 
@@ -186,12 +189,9 @@ class Favorite:
         stats_layout.addStretch()
         return stats_layout
     
-
     @staticmethod
     def create_news_layout(favorite_team_id):
-        
         news_layout = qtw.QVBoxLayout()
-
         stacked_widget = qtw.QStackedWidget()
 
         news_scroll_area = qtw.QScrollArea()
@@ -200,10 +200,10 @@ class Favorite:
         news_content_widget = qtw.QWidget()
         news_content_layout = qtw.QVBoxLayout(news_content_widget)
         news_data = News.get_fav_team_news_headlines(favorite_team_id)
-        
-        if(favorite_team_id==-1):
+    
+        if favorite_team_id == -1:
             news_data = News.show_news_in_home()
-            
+        
         for news_item in news_data:
             news_headline = news_item.get("title", "No Title")
             news_link = news_item.get("link", "#")
@@ -229,27 +229,56 @@ class Favorite:
         back_button.clicked.connect(lambda: stacked_widget.setCurrentIndex(0))
         article_layout.addWidget(back_button)
 
-        article_content_label = qtw.QTextBrowser()
-        article_layout.addWidget(article_content_label)
+        article_scroll_area = qtw.QScrollArea()
+        article_scroll_area.setWidgetResizable(True)
 
-        stacked_widget.addWidget(news_scroll_area)  
-        stacked_widget.addWidget(article_widget)    
+        article_content_widget = qtw.QWidget()
+        article_content_layout = qtw.QVBoxLayout(article_content_widget)
+
+        image_label = qtw.QLabel()
+        image_label.setAlignment(qtc.Qt.AlignCenter)
+
+        article_content_label = qtw.QTextBrowser()
+
+        article_content_layout.addWidget(image_label)
+        article_content_layout.addWidget(article_content_label)
+
+        article_content_widget.setLayout(article_content_layout)
+
+        article_scroll_area.setWidget(article_content_widget)
+
+        article_layout.addWidget(article_scroll_area)
+
+        stacked_widget.addWidget(news_scroll_area)
+        stacked_widget.addWidget(article_widget)
 
         def display_article_content(link):
-            paragraphs = News.scrape_news_paragraphs(link)
+            paragraphs, img_url = News.scrape_news_paragraphs(link)
+
             if paragraphs:
                 article_content_label.setText(paragraphs)
                 font = article_content_label.font()
-                font.setPointSize(10)  
+                font.setPointSize(10)
                 article_content_label.setFont(font)
             else:
                 article_content_label.setText("No content available.")
-    
+
+            if img_url != "No image found":
+                image_data = requests.get(img_url).content
+                pixmap = QPixmap()
+                pixmap.loadFromData(QByteArray(image_data))
+                pixmap = pixmap.scaled(400, 400, aspectRatioMode=qtc.Qt.KeepAspectRatio)
+                image_label.setPixmap(pixmap)
+                image_label.show()  
+            else:
+                image_label.clear()  
+
             stacked_widget.setCurrentIndex(1)
 
         news_layout.addWidget(stacked_widget)
 
         return news_layout
+
 
 
     @staticmethod

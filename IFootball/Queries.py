@@ -380,7 +380,7 @@ class Queries:
                 continue
             elif hot_match["match_id"] not in unique_ids:
                 matches_to_show.append(hot_match)
-                unique_ids.add(match["match_id"])             
+                unique_ids.add(hot_match["match_id"])             
 
         result = []
         for match in matches_to_show:

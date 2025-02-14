@@ -2,6 +2,7 @@ import json
 import requests
 from Queries import Queries
 from bs4 import BeautifulSoup
+from urllib.parse import unquote
 
 class News:
     
@@ -59,7 +60,14 @@ class News:
             return None
 
         soup = BeautifulSoup(page.text, 'lxml')
-
+        
+        img_wrap = soup.find('div', class_='img-wrap')
+        if img_wrap:
+            source_tag = img_wrap.find('source')  # Look for the first <source> tag within img-wrap
+            img_url = source_tag['srcset'].split(',')[0].strip() if source_tag and 'srcset' in source_tag.attrs else "No image found"
+        else:
+            img_url = "No image found"
+        
         paragraphs = soup.find_all('p')
         article_body = "\n\n".join([p.get_text().strip() for p in paragraphs if p.get_text().strip()])
         unwanted_intro = "welcome to espn india edition"
@@ -68,4 +76,4 @@ class News:
         if not article_body:
             article_body = "No content found in <p> tags."
 
-        return article_body
+        return article_body,img_url

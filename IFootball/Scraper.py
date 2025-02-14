@@ -69,7 +69,6 @@ async def gather_all_news():
 # Write to JSON file
 json_file = 'espn_news_headlines.json'
 
-
 news_data = asyncio.run(gather_all_news())
 with open(json_file, mode='w', encoding='utf-8') as file:
     json.dump(news_data, file, indent=4, ensure_ascii=False)
