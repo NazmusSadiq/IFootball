@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="210041139",
+    password="4444",
     database="IFootball"
 )
 cursor = db.cursor()
@@ -16,128 +16,110 @@ class Queries:
         
     def fetch_teams_from_database():
         try:
-            cursor.execute("SELECT team_name FROM teams")
+            cursor.execute("SELECT fetch_teams()")
+            result = cursor.fetchone()
+            return result[0] if result else ""
+        except mysql.connector.Error as e:
+            print(f"Database error: {e}")
+            return ""
 
-            teams = [row[0] for row in cursor.fetchall()]
-            return teams
-        except Exception as e:
-            print(f"Error fetching teams from database: {e}")
-            return []
          
     def get_team_id_by_name(full_name):
-        query = "SELECT team_id FROM teams WHERE team_name = %s"
-        cursor.execute(query, (full_name,))
-        result = cursor.fetchone()
-        return result[0] if result else None
+        try:
+            cursor.execute("SELECT get_team_id_by_name(%s)", (full_name,))
+            result = cursor.fetchone()
+            return result[0] if result else None
+        except mysql.connector.Error as e:
+            print(f"Error fetching team ID: {e}")
+            return None
     
-    def get_team_full_name_by_id(team_id):
-        query = "SELECT team_name FROM teams WHERE team_id = %s"
-        cursor.execute(query, (team_id,))
-        result = cursor.fetchone()
-        return result[0] if result else None
+    def get_team_full_name_by_id( team_id):
+        try:
+            cursor.execute("SELECT get_team_full_name_by_id(%s)", (team_id,))
+            result = cursor.fetchone()
+            return result[0] if result else None
+        except mysql.connector.Error as e:
+            print(f"Error fetching team name: {e}")
+            return None
 
     def get_last_matches(team_id, limit=10):
-        query = QueryTexts.last_matches_query
-        cursor.execute(query, (team_id, team_id, limit))
-        matches = cursor.fetchall()
+        try:
+            cursor.callproc("get_last_matches", (team_id, limit))
+            for result in cursor.stored_results():
+                matches = result.fetchall()
 
-        return [
-            {
-                "match_id": row[0],
-                "team1": row[1],
-                "team2": row[2],
-                "score1": row[3] if row[3] is not None else "N/A",  
-                "score2": row[4] if row[4] is not None else "N/A",  
-                "date": row[5].strftime('%Y-%m-%d'),  
-                "competition": row[6],  
-                "matchday": row[7],
-                "home_team_id": row[8],
-                "away_team_id": row[9],
-                "subscribed": row[10]
-            }
-            for row in matches
-        ]
-
-    def get_team_stats_in_fav(team_id):
-        query = QueryTexts.team_stats_in_fav
-        cursor.execute(query, (team_id, team_id, team_id, team_id, team_id, team_id, team_id, team_id))
-        stats = cursor.fetchall()
-
-        biggest_win_query = QueryTexts.biggest_win_query
-        cursor.execute(biggest_win_query, (team_id, team_id, team_id, team_id, team_id, team_id, team_id))
-        biggest_wins = cursor.fetchall()
-
-        biggest_loss_query = QueryTexts.biggest_loss_query
-        cursor.execute(biggest_loss_query, (team_id, team_id, team_id, team_id, team_id, team_id, team_id))
-        biggest_losses = cursor.fetchall()
-
-        biggest_stats_dict = {}
-
-        for win in biggest_wins:
-            competition_name = win[0]
-            goal_difference = win[3]
-            if competition_name not in biggest_stats_dict:
-                biggest_stats_dict[competition_name] = {'biggest_win': None, 'biggest_loss': None}
-        
-            if biggest_stats_dict[competition_name]['biggest_win'] is None or goal_difference > biggest_stats_dict[competition_name]['biggest_win']['goal_difference']:
-                biggest_stats_dict[competition_name]['biggest_win'] = {
-                    "date": win[1].strftime('%Y-%m-%d'),
-                    "opponent": win[2],
-                    "goal_difference": goal_difference,
-                    "team_goals": win[4],
-                    "opponent_goals": win[5],
-                    "matchday": win[6]  
+            return [
+                {
+                    "match_id": row[0],
+                    "team1": row[1],
+                    "team2": row[2],
+                    "score1": row[3],
+                    "score2": row[4],
+                    "date": row[5],
+                    "competition": row[6],
+                    "matchday": row[7],
+                    "home_team_id": row[8],
+                    "away_team_id": row[9],
+                    "subscribed": row[10]
                 }
+                for row in matches
+            ]
 
-        for loss in biggest_losses:
-            competition_name = loss[0]
-            goal_difference = loss[3]
-            if competition_name not in biggest_stats_dict:
-                biggest_stats_dict[competition_name] = {'biggest_win': None, 'biggest_loss': None}
-        
-            if biggest_stats_dict[competition_name]['biggest_loss'] is None or goal_difference > biggest_stats_dict[competition_name]['biggest_loss']['goal_difference']:
-                biggest_stats_dict[competition_name]['biggest_loss'] = {
-                    "date": loss[1].strftime('%Y-%m-%d'),
-                    "opponent": loss[2],
-                    "goal_difference": goal_difference,
-                    "team_goals": loss[4],
-                    "opponent_goals": loss[5],
-                    "matchday": loss[6]  
+        except mysql.connector.Error as e:
+            print(f"Error fetching matches: {e}")
+            return []
+
+    def get_team_stats_in_fav( team_id):
+        try:
+            cursor.callproc("get_team_stats_in_fav", (team_id,))
+
+            for result in cursor.stored_results():
+                stats = result.fetchall()
+
+            return [
+                {
+                    "competition": row[0],
+                    "competition_id": row[1],
+                    "total_matches": row[2],
+                    "wins": row[3],
+                    "draws": row[4],
+                    "losses": row[5],
+                    "goals_scored": row[6],
+                    "goals_conceded": row[7],
+                    "goal_difference": row[8],
+                    "biggest_win": {
+                        "date": row[9],
+                        "opponent": row[10],
+                        "goal_difference": row[11],
+                        "team_goals": row[12],
+                        "opponent_goals": row[13],
+                    } if row[9] else None,
+                    "biggest_loss": {
+                        "date": row[14],
+                        "opponent": row[15],
+                        "goal_difference": row[16],
+                        "team_goals": row[17],
+                        "opponent_goals": row[18],
+                    } if row[14] else None
                 }
+                for row in stats
+            ]
 
-        result = []
-        for stat in stats:
-            competition_name = stat[0]
-            biggest_stats = biggest_stats_dict.get(competition_name, {'biggest_win': None, 'biggest_loss': None})
-
-            competition_stat = {
-                "competition": stat[0],
-                "competition_id": stat[1],
-                "total_matches": stat[2],
-                "wins": stat[3],
-                "draws": stat[4],
-                "losses": stat[5],
-                "goals_scored": stat[6],
-                "goals_conceded": stat[7],
-                "goal_difference": stat[6] - stat[7],
-                "biggest_win": biggest_stats['biggest_win'],
-                "biggest_loss": biggest_stats['biggest_loss']
-            }
-
-            result.append(competition_stat)
-
-        return result
+        except mysql.connector.Error as e:
+            print(f"Error fetching team stats: {e}")
+            return []
 
     def get_next_matches(team_id, limit=10):
-        query = QueryTexts.next_matches_query
-        cursor.execute(query, (team_id, team_id, limit))
+        cursor.callproc('get_next_matches', [team_id, limit])
+        cursor.nextset()
+
         matches = cursor.fetchall()
 
         return [
             {
                 "match_id": row[0],
-                "team1": row[1],  # home team
-                "team2": row[2],  # away team
+                "team1": row[1], 
+                "team2": row[2], 
                 "date": row[3].strftime('%Y-%m-%d'),  
                 "competition": row[4],  
                 "matchday": row[5],  
@@ -149,8 +131,8 @@ class Queries:
         ]
 
     def get_competition_standings(competition_id):
-        query = QueryTexts.competition_standings_query
-        cursor.execute(query, (competition_id,))
+        cursor.callproc('get_competition_standings', [competition_id])
+        cursor.nextset()
         standings = cursor.fetchall()
 
         result = []
