@@ -155,14 +155,14 @@ class UILoader:
         sub_stack = qtw.QStackedWidget(main_window)
 
         # Add subtabs with match data from matches.py
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures()))  # Main for now
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures()))  # Main 
         sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_subscribed_matches()))  # Subscribed 
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2001,3,4)))  # UCL
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2021,3,4)))  # EPL
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2014,3,4)))  # La Liga
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2002,3,4)))  # Bundesliga
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2019,3,4)))  # Serie A
-        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2015,3,4)))  # Ligue 1
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2001,4,6)))  # UCL
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2021,4,6)))  # EPL
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2014,4,6)))  # La Liga
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2002,4,6)))  # Bundesliga
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2019,4,6)))  # Serie A
+        sub_stack.addWidget(UILoader.create_sub_tab_match(Queries.get_fixtures(2015,4,6)))  # Ligue 1
 
         section_layout.addWidget(sub_stack)
 

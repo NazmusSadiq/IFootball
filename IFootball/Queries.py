@@ -5,29 +5,35 @@ from datetime import datetime, timedelta
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="4444",
+    password="210041139",
     database="IFootball"
 )
 cursor = db.cursor()
+db.connect()
 
 class Queries:
     
     fav_team_id=0
-        
+            
     def fetch_teams_from_database():
         try:
-            cursor.execute("SELECT fetch_teams()")
-            result = cursor.fetchone()
-            return result[0] if result else ""
-        except mysql.connector.Error as e:
-            print(f"Database error: {e}")
-            return ""
+            cursor.execute("SELECT team_name FROM teams")
+
+            teams = [row[0] for row in cursor.fetchall()]
+            return teams
+        except Exception as e:
+            print(f"Error fetching teams from database: {e}")
+            return []
 
          
     def get_team_id_by_name(full_name):
         try:
+            if not db.is_connected():
+                db.reconnect() 
+            cursor = db.cursor()
             cursor.execute("SELECT get_team_id_by_name(%s)", (full_name,))
             result = cursor.fetchone()
+            cursor.close()
             return result[0] if result else None
         except mysql.connector.Error as e:
             print(f"Error fetching team ID: {e}")
@@ -35,8 +41,12 @@ class Queries:
     
     def get_team_full_name_by_id( team_id):
         try:
+            if not db.is_connected():
+                db.reconnect() 
+            cursor = db.cursor()
             cursor.execute("SELECT get_team_full_name_by_id(%s)", (team_id,))
             result = cursor.fetchone()
+            cursor.close()
             return result[0] if result else None
         except mysql.connector.Error as e:
             print(f"Error fetching team name: {e}")
@@ -44,10 +54,13 @@ class Queries:
 
     def get_last_matches(team_id, limit=10):
         try:
+            if not db.is_connected():
+                db.reconnect() 
+            cursor = db.cursor()
             cursor.callproc("get_last_matches", (team_id, limit))
             for result in cursor.stored_results():
                 matches = result.fetchall()
-
+            cursor.close()
             return [
                 {
                     "match_id": row[0],
@@ -69,52 +82,91 @@ class Queries:
             print(f"Error fetching matches: {e}")
             return []
 
-    def get_team_stats_in_fav( team_id):
-        try:
-            cursor.callproc("get_team_stats_in_fav", (team_id,))
+    def get_team_stats_in_fav(team_id): 
+        if not db.is_connected():
+            db.reconnect() 
+        cursor = db.cursor()
+        cursor.callproc('get_team_stats_in_fav', (team_id,))
 
-            for result in cursor.stored_results():
-                stats = result.fetchall()
+        stats = []  
+        for result in cursor.stored_results():  
+            stats = result.fetchall()   
 
-            return [
-                {
-                    "competition": row[0],
-                    "competition_id": row[1],
-                    "total_matches": row[2],
-                    "wins": row[3],
-                    "draws": row[4],
-                    "losses": row[5],
-                    "goals_scored": row[6],
-                    "goals_conceded": row[7],
-                    "goal_difference": row[8],
-                    "biggest_win": {
-                        "date": row[9],
-                        "opponent": row[10],
-                        "goal_difference": row[11],
-                        "team_goals": row[12],
-                        "opponent_goals": row[13],
-                    } if row[9] else None,
-                    "biggest_loss": {
-                        "date": row[14],
-                        "opponent": row[15],
-                        "goal_difference": row[16],
-                        "team_goals": row[17],
-                        "opponent_goals": row[18],
-                    } if row[14] else None
-                }
-                for row in stats
-            ]
+        # Call Stored Procedure for Biggest Win     & Loss
+        cursor.callproc('get_biggest_win_loss',     (team_id,))
 
-        except mysql.connector.Error as e:
-            print(f"Error fetching team stats: {e}")
-            return []
+        biggest_wins = []
+        biggest_losses = []
 
+        for i, result in enumerate(cursor.stored_results()):
+            if i == 0:
+                biggest_wins = result.fetchall()
+            elif i == 1:
+                biggest_losses = result.fetchall()
+
+        biggest_stats_dict = {}
+
+        for win in biggest_wins:
+            competition_name = win[0]
+            goal_difference = win[3]
+            if competition_name not in biggest_stats_dict:
+                biggest_stats_dict[competition_name] = {'biggest_win': None, 'biggest_loss': None}
+
+            biggest_stats_dict[competition_name]['biggest_win'] = {
+                "date": win[1].strftime('%Y-%m-%d'),
+                "opponent": win[2],
+                "goal_difference": goal_difference,
+                "team_goals": win[4],
+                "opponent_goals": win[5],
+                "matchday": win[6]
+            }
+
+        for loss in biggest_losses:
+            competition_name = loss[0]
+            goal_difference = loss[3]
+            if competition_name not in biggest_stats_dict:
+                biggest_stats_dict[competition_name] = {'biggest_win': None, 'biggest_loss': None}
+
+            biggest_stats_dict[competition_name]['biggest_loss'] = {
+                "date": loss[1].strftime('%Y-%m-%d'),
+                "opponent": loss[2],
+                "goal_difference": goal_difference,
+                "team_goals": loss[4],
+                "opponent_goals": loss[5],
+                "matchday": loss[6]
+            }
+
+        result = []
+        for stat in stats:
+            competition_name = stat[0]
+            biggest_stats = biggest_stats_dict.get(competition_name, {'biggest_win': None, 'biggest_loss': None})
+
+            competition_stat = {
+                "competition": stat[0],
+                "competition_id": stat[1],
+                "total_matches": stat[2],
+                "wins": stat[3],
+                "draws": stat[4],
+                "losses": stat[5],
+                "goals_scored": stat[6],
+                "goals_conceded": stat[7],
+                "goal_difference": stat[6] - stat[7],
+                "biggest_win": biggest_stats['biggest_win'],
+                "biggest_loss": biggest_stats['biggest_loss']
+            }
+
+            result.append(competition_stat)
+        cursor.close()
+        return result
+    
     def get_next_matches(team_id, limit=10):
+        if not db.is_connected():
+            db.reconnect() 
+        cursor = db.cursor()
         cursor.callproc('get_next_matches', [team_id, limit])
-        cursor.nextset()
-
-        matches = cursor.fetchall()
-
+        for result in cursor.stored_results():
+            matches = result.fetchall()
+        cursor.close()
         return [
             {
                 "match_id": row[0],
@@ -131,29 +183,38 @@ class Queries:
         ]
 
     def get_competition_standings(competition_id):
-        cursor.callproc('get_competition_standings', [competition_id])
-        cursor.nextset()
-        standings = cursor.fetchall()
+        if not db.is_connected():
+            db.reconnect()
+
+        cursor = db.cursor()
+        cursor.callproc("get_competition_standings", (competition_id,))  
 
         result = []
-        for team in standings:
-            team_stat = {
-                "team_name": team[0],
-                "team_id": team[1],
-                "points": team[2],
-                "wins": team[3],
-                "draws": team[4],
-                "losses": team[5],
-                "goals_scored": team[6],
-                "goals_conceded": team[7],
-                "goal_difference": team[8]
-            }
-            result.append(team_stat)
+    
+        for result_set in cursor.stored_results():
+            standings = result_set.fetchall()  
+    
+            for team in standings:
+                team_stat = {
+                    "team_name": team[0],
+                    "team_id": team[1],
+                    "points": team[2],
+                    "wins": team[3],
+                    "draws": team[4],
+                    "losses": team[5],
+                    "goals_scored": team[6],
+                    "goals_conceded": team[7],
+                    "goal_difference": team[8]
+                }
+                result.append(team_stat)
 
+        cursor.close()
         return result
 
     def get_competition_standings_near_team(competition_id, team_id):
-        
+        if not db.is_connected():
+            db.reconnect() 
+        cursor = db.cursor()
         query = QueryTexts.competition_standings_near_team_query
         cursor.execute(query, (competition_id,))
         standings = cursor.fetchall()
@@ -182,33 +243,44 @@ class Queries:
                 "team_pos": index + 1  
             }
             result.append(team_stat)
-
+        cursor.close()
         return result
 
     def get_competition_stats(competition_id):
-        query = QueryTexts.competition_stats_query
-        cursor.execute(query, (competition_id,))
-        stats = cursor.fetchall()
+        if not db.is_connected():
+            db.reconnect()
+
+        cursor = db.cursor()
+        cursor.callproc("get_competition_stats", (competition_id,))  
 
         result = []
-        for team in stats:
-            team_stat = {
-                "team_name": team[0],
-                "matches_played": team[1]+team[2]+team[3],
-                "goals_scored": team[4],
-                "goals_conceded": team[5],
-                "yellow_cards": team[6], 
-                "red_cards": team[7],   
-                "total_shots": team[8], 
-                "on_target": team[9],   
-                "offsides": team[10],   
-                "fouls": team[11]   
-            }
-            result.append(team_stat)
 
+        for result_set in cursor.stored_results():
+            stats = result_set.fetchall() 
+           
+            for team in stats:
+                team_stat = {
+                    "team_name": team[0],
+                    "matches_played": team[1] + team[2] + team[3],  
+                    "goals_scored": team[4],
+                    "goals_conceded": team[5],
+                    "yellow_cards": team[6], 
+                    "red_cards": team[7],   
+                    "total_shots": team[8], 
+                    "on_target": team[9],   
+                    "offsides": team[10],   
+                    "fouls": team[11]   
+                }
+                result.append(team_stat)
+
+        cursor.close()
         return result
 
+
     def get_fixtures(competition_id=None, last=2, next=2):
+        if not db.is_connected():
+            db.reconnect() 
+        cursor = db.cursor()
         default_competition_ids = [2001, 2021, 2015, 2014, 2002, 2019]
         if competition_id is None:
             competition_ids = default_competition_ids
@@ -273,10 +345,13 @@ class Queries:
                 fixture_data["default_competition_ids"] = default_competition_ids
         
             result.append(fixture_data)
-
+        cursor.close()
         return result
 
     def set_fav_team_matches_as_subscribed(favorite_team_id,reversed = 0):
+        if not db.is_connected():
+            db.reconnect() 
+        cursor = db.cursor()
         Queries.fav_team_id = favorite_team_id
         subscribed_value = 'No' if reversed == 1 else 'Yes'
 
@@ -288,8 +363,12 @@ class Queries:
     
         cursor.execute(query, (subscribed_value, favorite_team_id, favorite_team_id))
         db.commit()
+        cursor.close()
         
     def toggle_match_as_subscribed(match_id, new_status):
+        if not db.is_connected():
+            db.reconnect() 
+        cursor = db.cursor()
         query = """
             UPDATE matches
             SET subscribed = %s
@@ -298,8 +377,12 @@ class Queries:
         cursor.execute(query, (new_status,match_id))
         db.commit()
         print(match_id, new_status)
+        cursor.close()
         
     def get_subscribed_matches(last=2, next=3):
+        if not db.is_connected():
+            db.reconnect() 
+        cursor = db.cursor()
         query = QueryTexts.subscribed_matches_query
 
         cursor.execute(query, (last, next))
@@ -335,11 +418,10 @@ class Queries:
                 "subscribed": row[10]
             }
             result.append(fixture_data)
-
+        cursor.close()
         return result
 
     def get_home_matches():
-        
         matches = Queries.get_subscribed_matches()
         current_date = datetime.utcnow()
         matches_to_show = [] 
@@ -405,6 +487,9 @@ class Queries:
         return result
     
     def get_player_stats(competition_id):
+        if not db.is_connected():
+            db.reconnect() 
+        cursor = db.cursor()
         result = {
             "top_scorers": [],
             "top_assist_providers": [],
@@ -467,10 +552,13 @@ class Queries:
                 "total_clean_sheets": player[2],
                 "team_name": player[1]
             })
-
+        cursor.close()
         return result
     
     def get_comp_next_match(comp_id):
+        if not db.is_connected():
+            db.reconnect() 
+        cursor = db.cursor()
         query = QueryTexts.comp_next_match_query
         cursor.execute(query, (datetime.now(),comp_id))
         fixture = cursor.fetchone()
@@ -495,6 +583,9 @@ class Queries:
             return None
      
     def get_comp_prev_match(comp_id):
+        if not db.is_connected():
+            db.reconnect() 
+        cursor = db.cursor()
         query = QueryTexts.comp_previous_match_query
         cursor.execute(query, (comp_id,))
         fixture = cursor.fetchone()
@@ -513,9 +604,11 @@ class Queries:
                 "subscribed": fixture[10],
                 "competition_id":fixture[11]
             }
+            cursor.close()
             return fixture_data
         else:
             print("No Previous match found for " + str(comp_id))
+            cursor.close()
             return None
         
     def get_comp_recent_hot_match(comp_id):

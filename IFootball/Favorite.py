@@ -69,17 +69,16 @@ class Favorite:
 
         label = qtw.QLabel("Please start typing your favorite team:")
         dialog.layout().addWidget(label)
-
         teams = Queries.fetch_teams_from_database()  
-    
         team_input = qtw.QLineEdit()
         completer = qtw.QCompleter(teams)  
+        print("grgr")
         completer.setCaseSensitivity(qtc.Qt.CaseInsensitive) 
         completer.setFilterMode(qtc.Qt.MatchContains)  
         completer.setCompletionMode(qtw.QCompleter.UnfilteredPopupCompletion)
         team_input.setCompleter(completer)
-        dialog.layout().addWidget(team_input)
 
+        dialog.layout().addWidget(team_input)
         # Ok button
         ok_button = qtw.QPushButton("OK")
         ok_button.clicked.connect(lambda: Favorite.set_favorite_team(team_input.text(),main_window) or dialog.accept())
