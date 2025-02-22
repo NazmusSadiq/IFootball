@@ -69,46 +69,80 @@ class Queries:
             print(f"Error fetching matches: {e}")
             return []
 
-    def get_team_stats_in_fav( team_id):
-        try:
-            cursor.callproc("get_team_stats_in_fav", (team_id,))
+    def get_team_stats_in_fav(team_id): 
+        
+        cursor.callproc('get_team_stats_in_fav', (team_id,))
 
-            for result in cursor.stored_results():
-                stats = result.fetchall()
+        stats = []  
+        for result in cursor.stored_results():  
+            stats = result.fetchall()   
 
-            return [
-                {
-                    "competition": row[0],
-                    "competition_id": row[1],
-                    "total_matches": row[2],
-                    "wins": row[3],
-                    "draws": row[4],
-                    "losses": row[5],
-                    "goals_scored": row[6],
-                    "goals_conceded": row[7],
-                    "goal_difference": row[8],
-                    "biggest_win": {
-                        "date": row[9],
-                        "opponent": row[10],
-                        "goal_difference": row[11],
-                        "team_goals": row[12],
-                        "opponent_goals": row[13],
-                    } if row[9] else None,
-                    "biggest_loss": {
-                        "date": row[14],
-                        "opponent": row[15],
-                        "goal_difference": row[16],
-                        "team_goals": row[17],
-                        "opponent_goals": row[18],
-                    } if row[14] else None
-                }
-                for row in stats
-            ]
+        # Call Stored Procedure for Biggest Win     & Loss
+        cursor.callproc('get_biggest_win_loss',     (team_id,))
 
-        except mysql.connector.Error as e:
-            print(f"Error fetching team stats: {e}")
-            return []
+        biggest_wins = []
+        biggest_losses = []
 
+        for i, result in enumerate(cursor.stored_results()):
+            if i == 0:
+                biggest_wins = result.fetchall()
+            elif i == 1:
+                biggest_losses = result.fetchall()
+
+        biggest_stats_dict = {}
+
+        for win in biggest_wins:
+            competition_name = win[0]
+            goal_difference = win[3]
+            if competition_name not in biggest_stats_dict:
+                biggest_stats_dict[competition_name] = {'biggest_win': None, 'biggest_loss': None}
+
+            biggest_stats_dict[competition_name]['biggest_win'] = {
+                "date": win[1].strftime('%Y-%m-%d'),
+                "opponent": win[2],
+                "goal_difference": goal_difference,
+                "team_goals": win[4],
+                "opponent_goals": win[5],
+                "matchday": win[6]
+            }
+
+        for loss in biggest_losses:
+            competition_name = loss[0]
+            goal_difference = loss[3]
+            if competition_name not in biggest_stats_dict:
+                biggest_stats_dict[competition_name] = {'biggest_win': None, 'biggest_loss': None}
+
+            biggest_stats_dict[competition_name]['biggest_loss'] = {
+                "date": loss[1].strftime('%Y-%m-%d'),
+                "opponent": loss[2],
+                "goal_difference": goal_difference,
+                "team_goals": loss[4],
+                "opponent_goals": loss[5],
+                "matchday": loss[6]
+            }
+
+        result = []
+        for stat in stats:
+            competition_name = stat[0]
+            biggest_stats = biggest_stats_dict.get(competition_name, {'biggest_win': None, 'biggest_loss': None})
+
+            competition_stat = {
+                "competition": stat[0],
+                "competition_id": stat[1],
+                "total_matches": stat[2],
+                "wins": stat[3],
+                "draws": stat[4],
+                "losses": stat[5],
+                "goals_scored": stat[6],
+                "goals_conceded": stat[7],
+                "goal_difference": stat[6] - stat[7],
+                "biggest_win": biggest_stats['biggest_win'],
+                "biggest_loss": biggest_stats['biggest_loss']
+            }
+
+            result.append(competition_stat)
+
+        return result
     def get_next_matches(team_id, limit=10):
         cursor.callproc('get_next_matches', [team_id, limit])
         cursor.nextset()
