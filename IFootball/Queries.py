@@ -186,15 +186,14 @@ class Queries:
         return result
 
     def get_competition_stats(competition_id):
-        query = QueryTexts.competition_stats_query
-        cursor.execute(query, (competition_id,))
+        cursor.execute("CALL get_competition_stats(%s)", (competition_id,))
         stats = cursor.fetchall()
 
         result = []
         for team in stats:
             team_stat = {
                 "team_name": team[0],
-                "matches_played": team[1]+team[2]+team[3],
+                "matches_played": team[1] + team[2] + team[3],  
                 "goals_scored": team[4],
                 "goals_conceded": team[5],
                 "yellow_cards": team[6], 

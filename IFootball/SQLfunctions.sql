@@ -263,5 +263,43 @@ BEGIN
     ORDER BY points DESC, goal_difference DESC, goals_scored DESC;
 END //
 
+CREATE PROCEDURE get_competition_stats(IN competition_id INT)
+BEGIN
+    SELECT 
+        t.short_name AS team_name,
+        SUM(CASE 
+                WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR 
+                     (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 1 
+                ELSE 0 
+            END) AS wins,
+        SUM(CASE WHEN s.full_time_home = s.full_time_away THEN 1 ELSE 0 END) AS draws,
+        SUM(CASE 
+                WHEN (m.home_team_id = t.team_id AND s.full_time_home < s.full_time_away) OR 
+                     (m.away_team_id = t.team_id AND s.full_time_away < s.full_time_home) THEN 1 
+                ELSE 0 
+            END) AS losses,
+        SUM(CASE 
+            WHEN m.home_team_id = t.team_id THEN s.full_time_home 
+            ELSE s.full_time_away 
+        END) AS goals_scored,
+        SUM(CASE 
+            WHEN m.home_team_id = t.team_id THEN s.full_time_away 
+            ELSE s.full_time_home 
+        END) AS goals_conceded,
+        MIN(COALESCE(ts.yellow_cards, 5)) AS yellow_cards,  
+        MIN(COALESCE(ts.red_cards, 5)) AS red_cards,
+        MAX(COALESCE(ts.total_shots, 5)) AS total_shots,
+        MAX(COALESCE(ts.on_target, 5)) AS on_target,
+        MAX(COALESCE(ts.offsides, 5)) AS offsides,
+        MAX(COALESCE(ts.fouls, 5)) AS fouls
+    FROM teams t
+    JOIN matches m ON (m.home_team_id = t.team_id OR m.away_team_id = t.team_id)
+    JOIN scores s ON m.match_id = s.match_id
+    LEFT JOIN team_stats ts ON ts.team_id = t.team_id AND ts.competition_id = m.competition_id
+    WHERE m.competition_id = competition_id
+    GROUP BY t.short_name
+    ORDER BY t.short_name ASC;
+END //
+
 
 DELIMITER ;
