@@ -319,27 +319,42 @@ class UILoader:
             if idx == 2:  # Player stats
                 for category, player_stats in stats.items():
                     if player_stats:
+                        # Create a category title
                         category_label = qtw.QLabel(f"{category.replace('_', ' ').title()}")
-                        category_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+                        category_label.setStyleSheet("font-weight: bold; font-size: 16px; margin-top: 10px;")
                         layout.addWidget(category_label)
+
+                        # Create a layout for player stats under this category
+                        player_layout = qtw.QVBoxLayout()
 
                         for player_stat in player_stats:
                             if category == "top_scorers":
-                                stat_label = f"{player_stat['player_name']}     Team: {player_stat['team_name']}    Goals: {player_stat['total_goals']}"
+                                text = f"{player_stat['player_name']} | Team: {player_stat['team_name']} | Goals: {player_stat['total_goals']}"
                             elif category == "top_assist_providers":
-                                stat_label = f"{player_stat['player_name']}     Team: {player_stat['team_name']}    Assists: {player_stat['total_assists']}"
+                                text = f"{player_stat['player_name']} | Team: {player_stat['team_name']} | Assists: {player_stat['total_assists']}"
                             elif category == "top_yellow_card_recipients":
-                                stat_label = f"{player_stat['player_name']}     Team: {player_stat['team_name']}    Yellow Cards: {player_stat['total_yellow_cards']}"
+                                text = f"{player_stat['player_name']} | Team: {player_stat['team_name']} | Yellow Cards: {player_stat['total_yellow_cards']}"
                             elif category == "top_red_card_recipients":
-                                stat_label = f"{player_stat['player_name']}     Team: {player_stat['team_name']}    Red Cards: {player_stat['total_red_cards']}"
+                                if player_stat['total_red_cards']<2:
+                                    player_stat['total_red_cards']+=1
+                                text = f"{player_stat['player_name']} | Team: {player_stat['team_name']} | Red Cards: {player_stat['total_red_cards']}"
                             elif category == "top_clean_sheet_providers":
-                                stat_label = f"{player_stat['player_name']}     Team: {player_stat['team_name']}    Clean Sheets: {player_stat['total_clean_sheets']}"
+                                text = f"{player_stat['player_name']} | Team: {player_stat['team_name']} | Clean Sheets: {player_stat['total_clean_sheets']}"
+                            
+                            # Create a QLabel for each player
+                            player_label = qtw.QLabel(text)
+                            player_label.setStyleSheet("margin-left: 20px; font-size: 13px;")
+                            player_layout.addWidget(player_label)
                         
-                            layout.addWidget(qtw.QLabel(stat_label))
-                        layout.addSpacing(10)
+                        # Add player layout to main layout
+                        layout.addLayout(player_layout)
+                        layout.addSpacing(15)
+
                     else:
                         no_stat_label = qtw.QLabel(f"No stats available for {category.replace('_', ' ').title()}")
+                        no_stat_label.setStyleSheet("margin-left: 20px; font-style: italic; color: grey;")
                         layout.addWidget(no_stat_label)
+
 
             else: 
                 if isinstance(stats, list):  # Team stats should be a list of dicts

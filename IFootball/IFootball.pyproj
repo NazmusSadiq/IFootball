@@ -26,6 +26,7 @@
     <Compile Include="CustomQueries.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="dummyStats.py" />
     <Compile Include="Favorite.py" />
     <Compile Include="Main.py" />
     <Compile Include="API_Call.py">

@@ -70,130 +70,95 @@ BEGIN
 END //
 
 
-CREATE PROCEDURE get_team_stats_in_fav(IN p_team_id INT)
+CREATE PROCEDURE get_team_stats_in_fav(IN team_id INT)
 BEGIN
-    CREATE TEMPORARY TABLE IF NOT EXISTS temp_team_stats AS
-    (
-        SELECT 
-            c.competition_name, 
-            c.competition_id,
-            COUNT(m.match_id) AS total_matches,
-            SUM(CASE 
-                WHEN (m.home_team_id = p_team_id AND s.full_time_home > s.full_time_away) 
-                  OR (m.away_team_id = p_team_id AND s.full_time_away > s.full_time_home) 
-                THEN 1 ELSE 0 
-            END) AS wins,
-            SUM(CASE 
-                WHEN s.full_time_home = s.full_time_away THEN 1 
-                ELSE 0 
-            END) AS draws,
-            SUM(CASE 
-                WHEN (m.home_team_id = p_team_id AND s.full_time_home < s.full_time_away) 
-                  OR (m.away_team_id = p_team_id AND s.full_time_away < s.full_time_home) 
-                THEN 1 ELSE 0 
-            END) AS losses,
-            SUM(CASE 
-                WHEN m.home_team_id = p_team_id THEN s.full_time_home 
-                ELSE s.full_time_away 
-            END) AS goals_scored,
-            SUM(CASE 
-                WHEN m.home_team_id = p_team_id THEN s.full_time_away 
-                ELSE s.full_time_home 
-            END) AS goals_conceded
-        FROM matches m
-        JOIN scores s ON m.match_id = s.match_id
-        JOIN competitions c ON m.competition_id = c.competition_id
-        WHERE m.home_team_id = p_team_id OR m.away_team_id = p_team_id
-        GROUP BY c.competition_id
-    );
-
-    -- Biggest Wins
-    CREATE TEMPORARY TABLE IF NOT EXISTS temp_biggest_win AS
-    (
-        SELECT 
-            c.competition_name,
-            m.match_utc_date,
-            t2.short_name AS opponent,
-            GREATEST(ABS(s.full_time_home - s.full_time_away), 0) AS goal_difference,
-            CASE 
-                WHEN m.home_team_id = p_team_id THEN s.full_time_home 
-                ELSE s.full_time_away 
-            END AS team_goals,
-            CASE 
-                WHEN m.home_team_id = p_team_id THEN s.full_time_away 
-                ELSE s.full_time_home 
-            END AS opponent_goals,
-            m.matchday 
-        FROM matches m
-        JOIN teams t2 ON (m.home_team_id = t2.team_id OR m.away_team_id = t2.team_id) AND t2.team_id != p_team_id
-        JOIN scores s ON m.match_id = s.match_id
-        JOIN competitions c ON m.competition_id = c.competition_id
-        WHERE (m.home_team_id = p_team_id OR m.away_team_id = p_team_id) 
-          AND ((m.home_team_id = p_team_id AND s.full_time_home > s.full_time_away) 
-            OR (m.away_team_id = p_team_id AND s.full_time_away > s.full_time_home))
-        ORDER BY goal_difference DESC, m.match_utc_date DESC
-        LIMIT 1
-    );
-
-    -- Biggest Losses
-    CREATE TEMPORARY TABLE IF NOT EXISTS temp_biggest_loss AS
-    (
-        SELECT 
-            c.competition_name,
-            m.match_utc_date,
-            t2.short_name AS opponent,
-            GREATEST(ABS(s.full_time_home - s.full_time_away), 0) AS goal_difference,
-            CASE 
-                WHEN m.home_team_id = p_team_id THEN s.full_time_home 
-                ELSE s.full_time_away 
-            END AS team_goals,
-            CASE 
-                WHEN m.home_team_id = p_team_id THEN s.full_time_away 
-                ELSE s.full_time_home 
-            END AS opponent_goals,
-            m.matchday 
-        FROM matches m
-        JOIN teams t2 ON (m.home_team_id = t2.team_id OR m.away_team_id = t2.team_id) AND t2.team_id != p_team_id
-        JOIN scores s ON m.match_id = s.match_id
-        JOIN competitions c ON m.competition_id = c.competition_id
-        WHERE (m.home_team_id = p_team_id OR m.away_team_id = p_team_id) 
-          AND ((m.home_team_id = p_team_id AND s.full_time_home < s.full_time_away) 
-            OR (m.away_team_id = p_team_id AND s.full_time_away < s.full_time_home))
-        ORDER BY goal_difference DESC, m.match_utc_date DESC
-        LIMIT 1
-    );
-
-    -- Final Output
     SELECT 
-        ts.competition_name,
-        ts.competition_id,
-        ts.total_matches,
-        ts.wins,
-        ts.draws,
-        ts.losses,
-        ts.goals_scored,
-        ts.goals_conceded,
-        (ts.goals_scored - ts.goals_conceded) AS goal_difference,
-        bw.match_utc_date AS biggest_win_date,
-        bw.opponent AS biggest_win_opponent,
-        bw.goal_difference AS biggest_win_goal_difference,
-        bw.team_goals AS biggest_win_team_goals,
-        bw.opponent_goals AS biggest_win_opponent_goals,
-        bl.match_utc_date AS biggest_loss_date,
-        bl.opponent AS biggest_loss_opponent,
-        bl.goal_difference AS biggest_loss_goal_difference,
-        bl.team_goals AS biggest_loss_team_goals,
-        bl.opponent_goals AS biggest_loss_opponent_goals
-    FROM temp_team_stats ts
-    LEFT JOIN temp_biggest_win bw ON ts.competition_name = bw.competition_name
-    LEFT JOIN temp_biggest_loss bl ON ts.competition_name = bl.competition_name;
-
-    -- Drop temporary tables to clean up
-    DROP TEMPORARY TABLE temp_team_stats;
-    DROP TEMPORARY TABLE temp_biggest_win;
-    DROP TEMPORARY TABLE temp_biggest_loss;
-END //
-
+        c.competition_name, 
+        c.competition_id,
+        COUNT(m.match_id) AS total_matches,
+        SUM(CASE 
+            WHEN (m.home_team_id = team_id AND s.full_time_home > s.full_time_away) 
+              OR (m.away_team_id = team_id AND s.full_time_away > s.full_time_home) THEN 1 
+            ELSE 0 
+        END) AS wins,
+        SUM(CASE 
+            WHEN s.full_time_home = s.full_time_away THEN 1 
+            ELSE 0 
+        END) AS draws,
+        SUM(CASE 
+            WHEN (m.home_team_id = team_id AND s.full_time_home < s.full_time_away) 
+              OR (m.away_team_id = team_id AND s.full_time_away < s.full_time_home) THEN 1 
+            ELSE 0 
+        END) AS losses,
+        SUM(CASE 
+            WHEN m.home_team_id = team_id THEN s.full_time_home 
+            ELSE s.full_time_away 
+        END) AS goals_scored,
+        SUM(CASE 
+            WHEN m.home_team_id = team_id THEN s.full_time_away 
+            ELSE s.full_time_home 
+        END) AS goals_conceded
+    FROM matches m
+    JOIN scores s ON m.match_id = s.match_id
+    JOIN competitions c ON m.competition_id = c.competition_id
+    WHERE m.home_team_id = team_id OR m.away_team_id = team_id
+    GROUP BY c.competition_id;
+END $$
+    CREATE PROCEDURE get_biggest_win_loss(IN team_id INT)
+BEGIN
+    -- Biggest Win
+    SELECT 
+        c.competition_name,
+        m.match_utc_date,
+        t2.short_name AS opponent,
+        ABS(s.full_time_home - s.full_time_away) AS goal_difference,
+        CASE 
+            WHEN m.home_team_id = team_id THEN s.full_time_home 
+            ELSE s.full_time_away 
+        END AS team_goals,
+        CASE 
+            WHEN m.home_team_id = team_id THEN s.full_time_away 
+            ELSE s.full_time_home 
+        END AS opponent_goals,
+        m.matchday 
+    FROM matches m
+    JOIN teams t2 ON (m.home_team_id = t2.team_id OR m.away_team_id = t2.team_id) 
+        AND t2.team_id != team_id
+    JOIN scores s ON m.match_id = s.match_id
+    JOIN competitions c ON m.competition_id = c.competition_id
+    WHERE (m.home_team_id = team_id OR m.away_team_id = team_id) 
+      AND ((m.home_team_id = team_id AND s.full_time_home > s.full_time_away) 
+        OR (m.away_team_id = team_id AND s.full_time_away > s.full_time_home))
+    ORDER BY c.competition_name, goal_difference DESC, m.match_utc_date DESC
+    LIMIT 1;
+    
+    -- Biggest Loss
+    SELECT 
+        c.competition_name,
+        m.match_utc_date,
+        t2.short_name AS opponent,
+        ABS(s.full_time_home - s.full_time_away) AS goal_difference,
+        CASE 
+            WHEN m.home_team_id = team_id THEN s.full_time_home 
+            ELSE s.full_time_away 
+        END AS team_goals,
+        CASE 
+            WHEN m.home_team_id = team_id THEN s.full_time_away 
+            ELSE s.full_time_home 
+        END AS opponent_goals,
+        m.matchday 
+    FROM matches m
+    JOIN teams t2 ON (m.home_team_id = t2.team_id OR m.away_team_id = t2.team_id) 
+        AND t2.team_id != team_id
+    JOIN scores s ON m.match_id = s.match_id
+    JOIN competitions c ON m.competition_id = c.competition_id
+    WHERE (m.home_team_id = team_id OR m.away_team_id = team_id) 
+      AND ((m.home_team_id = team_id AND s.full_time_home < s.full_time_away) 
+        OR (m.away_team_id = team_id AND s.full_time_away < s.full_time_home))
+    ORDER BY c.competition_name, goal_difference DESC, m.match_utc_date DESC
+    LIMIT 1;
+    
+END $$
 
 CREATE PROCEDURE get_next_matches(IN team_id INT, IN limit_count INT)
 BEGIN
@@ -218,6 +183,7 @@ BEGIN
 END //
 
 
+DROP PROCEDURE IF EXISTS get_competition_standings;
 CREATE PROCEDURE get_competition_standings(IN competition_id INT)
 BEGIN
     SELECT 
@@ -261,6 +227,45 @@ BEGIN
     WHERE m.competition_id = competition_id
     GROUP BY t.short_name, t.team_id
     ORDER BY points DESC, goal_difference DESC, goals_scored DESC;
+END //
+
+DROP PROCEDURE IF EXISTS get_competition_stats;
+CREATE PROCEDURE get_competition_stats(IN competition_id INT)
+BEGIN
+    SELECT 
+        t.short_name AS team_name,
+        SUM(CASE 
+                WHEN (m.home_team_id = t.team_id AND s.full_time_home > s.full_time_away) OR 
+                     (m.away_team_id = t.team_id AND s.full_time_away > s.full_time_home) THEN 1 
+                ELSE 0 
+            END) AS wins,
+        SUM(CASE WHEN s.full_time_home = s.full_time_away THEN 1 ELSE 0 END) AS draws,
+        SUM(CASE 
+                WHEN (m.home_team_id = t.team_id AND s.full_time_home < s.full_time_away) OR 
+                     (m.away_team_id = t.team_id AND s.full_time_away < s.full_time_home) THEN 1 
+                ELSE 0 
+            END) AS losses,
+        SUM(CASE 
+            WHEN m.home_team_id = t.team_id THEN s.full_time_home 
+            ELSE s.full_time_away 
+        END) AS goals_scored,
+        SUM(CASE 
+            WHEN m.home_team_id = t.team_id THEN s.full_time_away 
+            ELSE s.full_time_home 
+        END) AS goals_conceded,
+        MIN(COALESCE(ts.yellow_cards, 5)) AS yellow_cards,  
+        MIN(COALESCE(ts.red_cards, 5)) AS red_cards,
+        MAX(COALESCE(ts.total_shots, 5)) AS total_shots,
+        MAX(COALESCE(ts.on_target, 5)) AS on_target,
+        MAX(COALESCE(ts.offsides, 5)) AS offsides,
+        MAX(COALESCE(ts.fouls, 5)) AS fouls
+    FROM teams t
+    JOIN matches m ON (m.home_team_id = t.team_id OR m.away_team_id = t.team_id)
+    JOIN scores s ON m.match_id = s.match_id
+    LEFT JOIN team_stats ts ON ts.team_id = t.team_id AND ts.competition_id = m.competition_id
+    WHERE m.competition_id = competition_id
+    GROUP BY t.short_name
+    ORDER BY t.short_name ASC;
 END //
 
 

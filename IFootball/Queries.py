@@ -313,7 +313,8 @@ class Queries:
                 elif fixture[6] == 2019:
                     competition_name = "Serie A"
 
-                appended_matchday = f"{competition_name} R{fixture[1]}"
+                appended_matchday = competition_name + " R" + str(fixture[1])
+                
                 
                 fixture_data = {
                     "match_date": fixture[0],
@@ -328,9 +329,24 @@ class Queries:
                     "subscribed": fixture[10]
                 }
             else:
+                competition_name = ""
+                if competition_id == 2001:
+                    competition_name = "UCL"
+                elif competition_id == 2021:
+                    competition_name = "EPL"
+                elif competition_id == 2015:
+                    competition_name = "Ligue 1"
+                elif competition_id == 2014:
+                    competition_name = "LaLiga"
+                elif competition_id == 2002:
+                    competition_name = "Bundesliga"
+                elif competition_id == 2019:
+                    competition_name = "Serie A"
+
+                appended_matchday = competition_name + " R" + str(fixture[1])
                 fixture_data = {
                     "match_date": fixture[0],
-                    "matchday": f"R{fixture[1]}",
+                    "matchday": appended_matchday,
                     "home_team": fixture[2],
                     "away_team": fixture[3],
                     "home_score": fixture[4],
